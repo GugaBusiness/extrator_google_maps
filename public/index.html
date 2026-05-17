@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MapsMiner | Extrator de Leads do Google Maps Premium</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Glowing background elements -->
+  <div class="mesh-gradient"></div>
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="radar-container">
+          <div class="radar-wave"></div>
+          <div class="radar-wave delay-1"></div>
+          <div class="radar-wave delay-2"></div>
+          <i class="fa-solid fa-location-crosshairs logo-icon"></i>
+        </div>
+        <div class="brand">
+          <h1>Maps<span>Miner</span></h1>
+          <p>Extrator de Leads de Alta Performance</p>
+        </div>
+      </div>
+      <div class="status-badge" id="system-status">
+        <span class="pulse-dot"></span>
+        <span class="status-text">Pronto para minerar</span>
+      </div>
+    </header>
+
+    <!-- Main Grid Dashboard -->
+    <main class="dashboard-grid">
+      
+      <!-- Control Panel (Left Column) -->
+      <section class="glass-panel control-panel">
+        <div class="panel-header">
+          <i class="fa-solid fa-sliders panel-icon"></i>
+          <h2>Configuração de Busca</h2>
+        </div>
+        
+        <form id="scrape-form" class="config-form">
+          <div class="input-group">
+            <label for="search-query">O que deseja buscar? (Nicho/Segmento) <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-magnifying-glass input-icon"></i>
+              <input type="text" id="search-query" placeholder="Ex: Salão de beleza, Dentista, Padaria" required>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="search-city">Cidade / Estado <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-city input-icon"></i>
+              <input type="text" id="search-city" placeholder="Ex: São Paulo, Rio de Janeiro - RJ" required>
+            </div>
+          </div>
+
+
+          <div class="form-row">
+            <div class="input-group half">
+              <label for="search-limit">Limite de Resultados</label>
+              <div class="input-wrapper">
+                <i class="fa-solid fa-list-ol input-icon"></i>
+                <input type="number" id="search-limit" value="10" min="1" max="500">
+              </div>
+            </div>
+
+            <div class="input-group half">
+              <label>Modo de Execução</label>
+              <div class="toggle-wrapper">
+                <label class="switch">
+                  <input type="checkbox" id="headless-mode" checked>
+                  <span class="slider round"></span>
+                </label>
+                <div class="toggle-text">
+                  <span class="toggle-title">Modo Invisível</span>
+                  <span class="toggle-desc">(Headless browser)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button type="submit" id="btn-start" class="btn-primary">
+              <i class="fa-solid fa-circle-play"></i> Iniciar Mineração
+            </button>
+            <button type="button" id="btn-stop" class="btn-secondary" disabled>
+              <i class="fa-solid fa-circle-stop"></i> Parar
+            </button>
+          </div>
+        </form>
+
+        <!-- Progress Log Container -->
+        <div class="log-section">
+          <div class="section-title">
+            <span>Terminal de Operação</span>
+            <button class="clear-logs" id="btn-clear-logs" title="Limpar logs"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+          <div class="log-console" id="console-logs">
+            <div class="log-line system">[SISTEMA] Sistema iniciado. Aguardando configurações de busca...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dashboard Stats (Right Column) -->
+      <section class="stats-and-charts">
+        <div class="stats-grid">
+          
+          <div class="stat-card glass-panel">
+            <div class="stat-icon-wrapper blue">
+              <i class="fa-solid fa-database"></i>
+            </div>
+            <div class="stat-info">
+              <h3 id="stat-extracted">0</h3>
+              <p>Leads Minados</p>
+            </div>
+            <div class="card-glow"></div>
+          </div>
+
+          <div class="stat-card glass-panel">
+            <div class="stat-icon-wrapper purple">
+              <i class="fa-solid fa-phone-volume"></i>
+            </div>
+            <div class="stat-info">
+              <h3 id="stat-phones">0</h3>
+              <p>Com Telefone</p>
+            </div>
+            <div class="card-glow"></div>
+          </div>
+
+          <div class="stat-card glass-panel">
+            <div class="stat-icon-wrapper green">
+              <i class="fa-solid fa-globe"></i>
+            </div>
+            <div class="stat-info">
+              <h3 id="stat-websites">0</h3>
+              <p>Com Website</p>
+            </div>
+            <div class="card-glow"></div>
+          </div>
+
+          <div class="stat-card glass-panel">
+            <div class="stat-icon-wrapper gold">
+              <i class="fa-solid fa-star"></i>
+            </div>
+            <div class="stat-info">
+              <h3 id="stat-avg-rating">0.0</h3>
+              <p>Avaliação Média</p>
+            </div>
+            <div class="card-glow"></div>
+          </div>
+
+        </div>
+
+        <!-- Real-time extraction status and bar -->
+        <div class="glass-panel progress-panel">
+          <div class="progress-details">
+            <span class="progress-label" id="progress-status-text">Aguardando mineração...</span>
+            <span class="progress-percent" id="progress-percent-val">0%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- Quick actions / Export Card -->
+        <div class="glass-panel export-panel" id="export-card">
+          <div class="export-header">
+            <h3>Exportar Resultados</h3>
+            <p>Seus dados estão prontos! Escolha o formato desejado para exportação.</p>
+          </div>
+          <div class="export-buttons">
+            <a href="#" id="download-csv" class="btn-export csv">
+              <i class="fa-solid fa-file-csv"></i> Download CSV (.csv)
+            </a>
+            <a href="#" id="download-json" class="btn-export json">
+              <i class="fa-solid fa-file-code"></i> Download JSON (.json)
+            </a>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Table Section (Full Width) -->
+    <section class="glass-panel table-panel">
+      <div class="table-header">
+        <div class="table-title">
+          <i class="fa-solid fa-table-list"></i>
+          <h2>Leads Capturados</h2>
+        </div>
+        <div class="table-search">
+          <i class="fa-solid fa-filter"></i>
+          <input type="text" id="table-filter" placeholder="Filtrar por nome, telefone, categoria..." disabled>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="leads-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>Telefone</th>
+              <th>Website</th>
+              <th>Endereço</th>
+              <th style="width: 80px; text-align: center;">Nota</th>
+              <th style="width: 90px; text-align: center;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="leads-table-body">
+            <tr class="empty-row">
+              <td colspan="8">
+                <div class="empty-state">
+                  <i class="fa-solid fa-folder-open empty-icon"></i>
+                  <p>Nenhum lead extraído ainda. Defina os termos da busca acima e clique em "Iniciar Mineração"!</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>&copy; 2026 MapsMiner. Desenvolvido para extrações ultra-rápidas e estáveis.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

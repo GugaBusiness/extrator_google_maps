@@ -1,0 +1,16 @@
+{
+  "name": "maps-miner",
+  "version": "1.0.0",
+  "description": "Google Maps Scraping Web Application with Premium UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "playwright": "^1.44.0"
+  },
+  "author": "Antigravity",
+  "license": "ISC"
+}
