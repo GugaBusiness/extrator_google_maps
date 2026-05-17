@@ -3,6 +3,19 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
+// Modern User-Agents for browser fingerprint rotation
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+];
+
+function getRandomUserAgent() {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -154,9 +167,11 @@ app.get('/api/scrape', async (req, res) => {
 
   sendEvent('status', { message: 'Iniciando navegador Chromium...' });
 
+  const userAgent = getRandomUserAgent();
+
   let browser;
   try {
-    browser = await chromium.launch({
+    const launchOptions = {
       headless: headless,
       args: [
         '--no-sandbox',
@@ -165,11 +180,24 @@ app.get('/api/scrape', async (req, res) => {
         '--disable-accelerated-2d-canvas',
         '--disable-gpu'
       ]
-    });
+    };
+
+    // Proxy support (optional via environment variables)
+    if (process.env.PROXY_SERVER) {
+      launchOptions.proxy = {
+        server: process.env.PROXY_SERVER
+      };
+      if (process.env.PROXY_USERNAME && process.env.PROXY_PASSWORD) {
+        launchOptions.proxy.username = process.env.PROXY_USERNAME;
+        launchOptions.proxy.password = process.env.PROXY_PASSWORD;
+      }
+    }
+
+    browser = await chromium.launch(launchOptions);
 
     const context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      userAgent: userAgent,
       locale: 'pt-BR'
     });
 
@@ -315,22 +343,37 @@ app.get('/api/scrape', async (req, res) => {
 
           // Extract Rating and Review Count
           const ratingData = await detailPage.evaluate(() => {
+            // Primary selector
             const container = document.querySelector('div.F7nice');
-            if (!container) return { rating: '', reviewsCount: '' };
+            if (container) {
+              const ratingSpan = container.querySelector('span[aria-hidden="true"]');
+              const rating = ratingSpan ? ratingSpan.innerText.trim() : '';
 
-            const ratingSpan = container.querySelector('span[aria-hidden="true"]');
-            const rating = ratingSpan ? ratingSpan.innerText.trim() : '';
-
-            const reviewsButton = container.querySelector('button[aria-label*="avalia"], span[aria-label*="avalia"]');
-            let reviewsCount = '';
-            if (reviewsButton) {
-              const label = reviewsButton.getAttribute('aria-label') || reviewsButton.innerText;
-              const match = label.match(/\d[\d\s.,]*/);
-              if (match) {
-                reviewsCount = match[0].replace(/[^\d]/g, '').trim();
+              const reviewsButton = container.querySelector('button[aria-label*="avalia"], span[aria-label*="avalia"]');
+              let reviewsCount = '';
+              if (reviewsButton) {
+                const label = reviewsButton.getAttribute('aria-label') || reviewsButton.innerText;
+                const match = label.match(/\d[\d\s.,]*/);
+                if (match) {
+                  reviewsCount = match[0].replace(/[^\d]/g, '').trim();
+                }
               }
+              return { rating, reviewsCount };
             }
-            return { rating, reviewsCount };
+
+            // Fallback: search anywhere in page for rating/reviews
+            const ratingEl = document.querySelector('span[aria-label*="estrelas"], span[aria-label*="stars"], span[aria-label*="avalia"]');
+            if (ratingEl) {
+              const label = ratingEl.getAttribute('aria-label') || '';
+              const ratingMatch = label.match(/^(\d[.,]\d|\d)/);
+              const rating = ratingMatch ? ratingMatch[1].replace(',', '.') : '';
+              
+              const reviewsMatch = label.match(/(\d[\d\s.,]*)\s*(avalia|review)/i);
+              const reviewsCount = reviewsMatch ? reviewsMatch[1].replace(/[^\d]/g, '').trim() : '';
+              return { rating, reviewsCount };
+            }
+
+            return { rating: '', reviewsCount: '' };
           }).catch(() => ({ rating: '', reviewsCount: '' }));
 
           // Extract Category
@@ -339,18 +382,104 @@ app.get('/api/scrape', async (req, res) => {
             if (button) return button.innerText.trim();
             const el = document.querySelector('.DkEaCc');
             if (el) return el.innerText.trim();
+            
+            // Fallback
+            const altEl = document.querySelector('button[class*="category"], span[class*="category"]');
+            if (altEl) return altEl.innerText.trim();
             return '';
           }).catch(() => '');
 
           // Extract Address
-          let address = await detailPage.locator('button[data-item-id="address"]').first().innerText().catch(() => '');
+          let address = '';
+          const addressEl = await detailPage.locator('button[data-item-id="address"]').first().catch(() => null);
+          if (addressEl) {
+            address = await addressEl.innerText().catch(() => '');
+          }
+          
+          if (!address) {
+            // Fallback via SVG location-pin path detection
+            address = await detailPage.evaluate(() => {
+              const addressKeywords = ['M12 2C8.13 2 5', 'M12 8c-1.1', '12 2C'];
+              const svgs = document.querySelectorAll('svg');
+              for (const svg of svgs) {
+                const paths = svg.querySelectorAll('path');
+                for (const path of paths) {
+                  const d = path.getAttribute('d') || '';
+                  if (addressKeywords.some(k => d.includes(k))) {
+                    let parent = svg.parentElement;
+                    while (parent && parent.tagName !== 'BUTTON' && parent.tagName !== 'DIV' && parent.tagName !== 'A') {
+                      parent = parent.parentElement;
+                    }
+                    if (parent && parent.innerText && parent.innerText.trim().length > 3) {
+                      return parent.innerText.trim();
+                    }
+                  }
+                }
+              }
+              return '';
+            }).catch(() => '');
+          }
           address = address.replace(/[\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
 
           // Extract Website
-          const website = await detailPage.locator('a[data-item-id="authority"]').first().getAttribute('href').catch(() => '');
+          let website = await detailPage.locator('a[data-item-id="authority"]').first().getAttribute('href').catch(() => '');
+          
+          if (!website) {
+            // Fallback via SVG globe/authority path detection
+            website = await detailPage.evaluate(() => {
+              const websiteKeywords = ['M12 2C6.48 2 2 6.48', 'M10 20v-6', 'M12 2C', '12 2C'];
+              const svgs = document.querySelectorAll('svg');
+              for (const svg of svgs) {
+                const paths = svg.querySelectorAll('path');
+                for (const path of paths) {
+                  const d = path.getAttribute('d') || '';
+                  if (websiteKeywords.some(k => d.includes(k))) {
+                    let parent = svg.parentElement;
+                    while (parent && parent.tagName !== 'A' && parent.tagName !== 'BUTTON') {
+                      parent = parent.parentElement;
+                    }
+                    if (parent) {
+                      if (parent.tagName === 'A' && parent.getAttribute('href')) {
+                        return parent.getAttribute('href');
+                      }
+                      const link = parent.querySelector('a');
+                      if (link && link.getAttribute('href')) {
+                        return link.getAttribute('href');
+                      }
+                    }
+                  }
+                }
+              }
+              return '';
+            }).catch(() => '');
+          }
 
           // Extract Phone
           let phone = await detailPage.locator('button[data-item-id^="phone:tel:"]').first().innerText().catch(() => '');
+          
+          if (!phone) {
+            // Fallback via SVG phone path detection
+            phone = await detailPage.evaluate(() => {
+              const phoneKeywords = ['M6.62', 'M20.01', 'M3.62', '10.79', 'M20 15.5c-1.2'];
+              const svgs = document.querySelectorAll('svg');
+              for (const svg of svgs) {
+                const paths = svg.querySelectorAll('path');
+                for (const path of paths) {
+                  const d = path.getAttribute('d') || '';
+                  if (phoneKeywords.some(k => d.includes(k))) {
+                    let parent = svg.parentElement;
+                    while (parent && parent.tagName !== 'BUTTON' && parent.tagName !== 'DIV' && parent.tagName !== 'A') {
+                      parent = parent.parentElement;
+                    }
+                    if (parent && parent.innerText && parent.innerText.trim().length > 3) {
+                      return parent.innerText.trim();
+                    }
+                  }
+                }
+              }
+              return '';
+            }).catch(() => '');
+          }
           phone = phone.replace(/[\n\r]/g, '').trim();
 
           // Parse Coordinates (Lat/Lng) from URL
