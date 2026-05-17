@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Panificadora Nossa Senhora De Fátima",
+    "category": "",
+    "phone": "(96) 3223-1122",
+    "website": "https://panificadoransfatima.com.br/",
+    "address": "R. Leopoldo Machado, 1807 - Central, Macapá - AP, 68900-067",
+    "rating": "4,6",
+    "reviewsCount": "419",
+    "lat": "",
+    "lng": "",
+    "url": "https://www.google.com/maps/place/Panificadora+Nossa+Senhora+De+F%C3%A1tima/data=!4m7!3m6!1s0x8d61e1ffa4135cbb:0x6de7f1e7d214e5ae!8m2!3d0.0359463!4d-51.0620985!16s%2Fg%2F11nmpl1qt0!19sChIJu1wTpP_hYY0RruUU0ufx520?authuser=0&hl=pt-BR&rclk=1"
+  },
+  {
+    "name": "Panificadora Santa Rita",
+    "category": "",
+    "phone": "(96) 98120-7631",
+    "website": "",
+    "address": "R. Manoel Eudóxio Pereira, 2039 - Central, Macapá - AP, 68900-021",
+    "rating": "4,5",
+    "reviewsCount": "821",
+    "lat": "0.0318088",
+    "lng": "-51.0664448",
+    "url": "https://www.google.com/maps/place/Panificadora+Santa+Rita/@0.0318088,-51.0664448,17z/data=!3m1!4b1!4m6!3m5!1s0x8d61e19d46104915:0x77327f6b202d9890!8m2!3d0.0318088!4d-51.0664448!16s%2Fg%2F11f7n9k76q?authuser=0&hl=pt-BR&entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D"
+  },
+  {
+    "name": "Pão da Vida Panificação & Delicatesse",
+    "category": "",
+    "phone": "(96) 3217-2416",
+    "website": "",
+    "address": "R. Eliezer Levy, 1967 - Centro, Macapá - AP, 68900-083",
+    "rating": "4,5",
+    "reviewsCount": "3187",
+    "lat": "0.034217",
+    "lng": "-51.056347",
+    "url": "https://www.google.com/maps/place/P%C3%A3o+da+Vida+Panifica%C3%A7%C3%A3o+%26+Delicatesse/@0.034217,-51.056347,17z/data=!3m1!4b1!4m6!3m5!1s0x8d61e11e4248d109:0x38c00f3b3af741fa!8m2!3d0.034217!4d-51.056347!16s%2Fg%2F1wk6_tj_?authuser=0&hl=pt-BR&entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D"
+  },
+  {
+    "name": "Panificadora Santa Rita",
+    "category": "",
+    "phone": "3222-8806",
+    "website": "",
+    "address": "Av. Profa. Cora de Carvalho, 3538-3688 - Central, Macapá - AP, 68900-040",
+    "rating": "4,3",
+    "reviewsCount": "518",
+    "lat": "0.0373181",
+    "lng": "-51.0810401",
+    "url": "https://www.google.com/maps/place/Panificadora+Santa+Rita/@0.0373181,-51.0810401,17z/data=!3m1!4b1!4m6!3m5!1s0x8d61e16e6cdc328b:0xe5deb72d6626a629!8m2!3d0.0373181!4d-51.0810401!16s%2Fg%2F11c6cgt718?authuser=0&hl=pt-BR&entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D"
+  },
+  {
+    "name": "Padaria Caseira",
+    "category": "",
+    "phone": "",
+    "website": "",
+    "address": "Av. João Batista Coutinho, 1822-1924 - Novo Buritizal, Macapá - AP, 68904-276",
+    "rating": "4,8",
+    "reviewsCount": "69",
+    "lat": "0.0193661",
+    "lng": "-51.0810587",
+    "url": "https://www.google.com/maps/place/Padaria+Caseira/@0.0193661,-51.0810587,17z/data=!3m1!4b1!4m6!3m5!1s0x8d61e1eb73ea37a3:0xded086a3434e3201!8m2!3d0.0193661!4d-51.0810587!16s%2Fg%2F11q1p12wt8?authuser=0&hl=pt-BR&entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D"
+  }
+]
