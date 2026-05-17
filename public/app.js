@@ -116,6 +116,63 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
 
+    // Build email cell with quick copy and mailto link
+    let emailContent = '<span class="text-muted">Não possui</span>';
+    if (lead.email) {
+      emailContent = `
+        <div class="email-cell-wrapper">
+          <a href="mailto:${lead.email}" class="lead-email-link" title="${lead.email}">
+            <i class="fa-solid fa-envelope"></i> ${lead.email}
+          </a>
+          <button class="btn-copy-text" onclick="navigator.clipboard.writeText('${lead.email}')" title="Copiar E-mail">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    // Build social media icons wrapper
+    let socialsContent = '<div class="social-icons-wrapper">';
+    let hasSocials = false;
+    
+    if (lead.instagram) {
+      socialsContent += `
+        <a href="${lead.instagram}" target="_blank" class="social-icon instagram" title="Instagram: ${lead.instagram}">
+          <i class="fa-brands fa-instagram"></i>
+        </a>
+      `;
+      hasSocials = true;
+    }
+    if (lead.facebook) {
+      socialsContent += `
+        <a href="${lead.facebook}" target="_blank" class="social-icon facebook" title="Facebook: ${lead.facebook}">
+          <i class="fa-brands fa-facebook"></i>
+        </a>
+      `;
+      hasSocials = true;
+    }
+    if (lead.linkedin) {
+      socialsContent += `
+        <a href="${lead.linkedin}" target="_blank" class="social-icon linkedin" title="LinkedIn: ${lead.linkedin}">
+          <i class="fa-brands fa-linkedin"></i>
+        </a>
+      `;
+      hasSocials = true;
+    }
+    if (lead.youtube) {
+      socialsContent += `
+        <a href="${lead.youtube}" target="_blank" class="social-icon youtube" title="YouTube: ${lead.youtube}">
+          <i class="fa-brands fa-youtube"></i>
+        </a>
+      `;
+      hasSocials = true;
+    }
+    
+    if (!hasSocials) {
+      socialsContent += '<span class="text-muted">-</span>';
+    }
+    socialsContent += '</div>';
+
     // Build website cell with quick copy if exists
     let websiteContent = '<span class="text-muted">Não possui</span>';
     if (lead.website) {
@@ -159,6 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <td><span class="lead-name">${lead.name}</span></td>
       <td>${categoryBadge}</td>
       <td>${phoneContent}</td>
+      <td>${emailContent}</td>
+      <td>${socialsContent}</td>
       <td>${websiteContent}</td>
       <td>${addressContent}</td>
       <td style="text-align: center;">${ratingBadge}</td>
@@ -196,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
     allLeads = [];
     leadsTableBody.innerHTML = `
       <tr class="empty-row">
-        <td colspan="8">
+        <td colspan="10">
           <div class="empty-state">
             <i class="fa-solid fa-folder-open empty-icon"></i>
             <p>Nenhum lead extraído ainda. Defina os termos da busca acima e clique em "Iniciar Mineração"!</p>

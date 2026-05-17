@@ -16,6 +16,82 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR);
 }
 
+// B2B Enrichment Helper: Scrapes website for emails and social media links
+async function enrichLeadWebsite(url) {
+  if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+    return { email: '', instagram: '', facebook: '', linkedin: '', youtube: '' };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+      }
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return { email: '', instagram: '', facebook: '', linkedin: '', youtube: '' };
+    }
+
+    const html = await response.text();
+
+    // Social Media Matches
+    const instagramMatch = html.match(/href="([^"]*instagram\.com\/[^"]*)"/i) || html.match(/href='([^']*instagram\.com\/[^']*)'/i);
+    const facebookMatch = html.match(/href="([^"]*facebook\.com\/[^"]*)"/i) || html.match(/href='([^']*facebook\.com\/[^']*)'/i);
+    const linkedinMatch = html.match(/href="([^"]*linkedin\.com\/[^"]*)"/i) || html.match(/href='([^']*linkedin\.com\/[^']*)'/i);
+    const youtubeMatch = html.match(/href="([^"]*youtube\.com\/[^"]*)"/i) || html.match(/href='([^']*youtube\.com\/[^']*)'/i);
+
+    // Email Matches (mailto first, fallback to regex)
+    const mailtoMatch = html.match(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+    let email = mailtoMatch ? mailtoMatch[1] : '';
+
+    if (!email) {
+      const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+      const allEmails = html.match(emailRegex);
+      if (allEmails && allEmails.length > 0) {
+        const filtered = allEmails.filter(e => {
+          const lower = e.toLowerCase();
+          return !lower.endsWith('.png') && !lower.endsWith('.jpg') && !lower.endsWith('.jpeg') && !lower.endsWith('.gif') && !lower.endsWith('.webp') && !lower.endsWith('example.com') && !lower.endsWith('sentry.io');
+        });
+        if (filtered.length > 0) {
+          email = filtered[0];
+        }
+      }
+    }
+
+    const cleanSocial = (match) => {
+      if (!match) return '';
+      let socialUrl = match[1].trim();
+      if (socialUrl.startsWith('//')) {
+        socialUrl = 'https:' + socialUrl;
+      } else if (!socialUrl.startsWith('http')) {
+        socialUrl = 'https://' + socialUrl;
+      }
+      return socialUrl;
+    };
+
+    return {
+      email: email.trim().toLowerCase(),
+      instagram: cleanSocial(instagramMatch),
+      facebook: cleanSocial(facebookMatch),
+      linkedin: cleanSocial(linkedinMatch),
+      youtube: cleanSocial(youtubeMatch)
+    };
+
+  } catch (err) {
+    return { email: '', instagram: '', facebook: '', linkedin: '', youtube: '' };
+  }
+}
+
+
 // Global state to store the latest search data for instant download
 let currentSearchData = [];
 
@@ -30,12 +106,17 @@ function escapeCSV(val) {
 
 // Convert JSON array to CSV string
 function convertToCSV(data) {
-  const headers = ['Nome', 'Categoria', 'Telefone', 'Website', 'Endereço', 'Avaliação', 'Total Avaliações', 'Latitude', 'Longitude', 'Link do Maps'];
+  const headers = ['Nome', 'Categoria', 'Telefone', 'Website', 'E-mail', 'Instagram', 'Facebook', 'LinkedIn', 'YouTube', 'Endereço', 'Avaliação', 'Total Avaliações', 'Latitude', 'Longitude', 'Link do Maps'];
   const rows = data.map(item => [
     item.name || '',
     item.category || '',
     item.phone || '',
     item.website || '',
+    item.email || '',
+    item.instagram || '',
+    item.facebook || '',
+    item.linkedin || '',
+    item.youtube || '',
     item.address || '',
     item.rating || '',
     item.reviewsCount || '',
@@ -278,11 +359,26 @@ app.get('/api/scrape', async (req, res) => {
           const lat = coordMatch ? coordMatch[1] : '';
           const lng = coordMatch ? coordMatch[2] : '';
 
+          // Close detail page to immediately free browser memory
+          await detailPage.close().catch(() => {});
+
+          // Try to enrich B2B data (Email & Social Media) in background if website is available
+          let b2bData = { email: '', instagram: '', facebook: '', linkedin: '', youtube: '' };
+          if (website) {
+            sendEvent('status', { message: `Verificando redes sociais e e-mails em: ${website}...` });
+            b2bData = await enrichLeadWebsite(website);
+          }
+
           const lead = {
             name,
             category,
             phone,
             website,
+            email: b2bData.email,
+            instagram: b2bData.instagram,
+            facebook: b2bData.facebook,
+            linkedin: b2bData.linkedin,
+            youtube: b2bData.youtube,
             address,
             rating: ratingData.rating,
             reviewsCount: ratingData.reviewsCount,
@@ -293,8 +389,6 @@ app.get('/api/scrape', async (req, res) => {
 
           leads.push(lead);
           sendEvent('lead', { lead, index: currentIndex + 1, total: uniqueUrls.length });
-          
-          await detailPage.close().catch(() => {});
         } catch (err) {
           console.error(`Erro ao extrair item ${currentIndex + 1}:`, err.message);
           sendEvent('status', { message: `Erro ao extrair detalhes do item ${currentIndex + 1}. Pulando...` });
