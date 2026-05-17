@@ -94,13 +94,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const row = document.createElement('tr');
     row.dataset.index = index;
 
-    // Build website cell link if exists
+    // Build phone cell with quick copy and WhatsApp link if exists
+    let phoneContent = '<span class="text-muted">Não possui</span>';
+    if (lead.phone) {
+      const cleanNum = lead.phone.replace(/\D/g, '');
+      const waNum = (cleanNum.length === 10 || cleanNum.length === 11) ? '55' + cleanNum : cleanNum;
+      const message = encodeURIComponent(`Olá! Encontrei o seu contato no Google Maps.`);
+      
+      phoneContent = `
+        <div class="phone-cell-wrapper">
+          <span class="lead-phone">${lead.phone}</span>
+          <div class="phone-actions">
+            <button class="btn-copy-text" onclick="navigator.clipboard.writeText('${lead.phone}')" title="Copiar Telefone">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+            <a href="https://wa.me/${waNum}?text=${message}" target="_blank" class="btn-wa-direct" title="Iniciar Conversa no WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    // Build website cell with quick copy if exists
     let websiteContent = '<span class="text-muted">Não possui</span>';
     if (lead.website) {
-      const cleanWeb = lead.website.replace(/https?:\/\/(www\.)?/, '').substring(0, 20);
-      websiteContent = `<a href="${lead.website}" target="_blank" class="lead-website-link" title="${lead.website}">
-        <i class="fa-solid fa-arrow-up-right-from-square"></i> ${cleanWeb}...
-      </a>`;
+      const cleanWeb = lead.website.replace(/https?:\/\/(www\.)?/, '').substring(0, 18);
+      websiteContent = `
+        <div class="web-cell-wrapper">
+          <a href="${lead.website}" target="_blank" class="lead-website-link" title="${lead.website}">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> ${cleanWeb}...
+          </a>
+          <button class="btn-copy-text" onclick="navigator.clipboard.writeText('${lead.website}')" title="Copiar Site">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    // Build address cell with quick copy if exists
+    let addressContent = '<span class="text-muted">Não possui</span>';
+    if (lead.address) {
+      addressContent = `
+        <div class="address-cell-wrapper">
+          <span class="text-secondary" style="font-size: 13px;">${lead.address}</span>
+          <button class="btn-copy-text" onclick="navigator.clipboard.writeText('${lead.address.replace(/'/g, "\\'")}')" title="Copiar Endereço">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+        </div>
+      `;
     }
 
     // Build category badge if exists
@@ -116,9 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <td class="lead-index">${index}</td>
       <td><span class="lead-name">${lead.name}</span></td>
       <td>${categoryBadge}</td>
-      <td><span class="lead-phone">${lead.phone || '<span class="text-muted">Não possui</span>'}</span></td>
+      <td>${phoneContent}</td>
       <td>${websiteContent}</td>
-      <td><span class="text-secondary" style="font-size: 13px;">${lead.address || '<span class="text-muted">Não possui</span>'}</span></td>
+      <td>${addressContent}</td>
       <td style="text-align: center;">${ratingBadge}</td>
       <td style="text-align: center;">
         <div class="lead-actions">

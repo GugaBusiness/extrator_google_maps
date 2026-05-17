@@ -1048,3 +1048,61 @@ tr:hover td {
   0% { box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
   100% { box-shadow: 0 0 25px rgba(99, 102, 241, 0.4); }
 }
+
+/* Cell Action Wrappers */
+.phone-cell-wrapper, .web-cell-wrapper, .address-cell-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.phone-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-copy-text {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+}
+
+.btn-copy-text:hover {
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.1);
+  transform: scale(1.1);
+}
+
+.btn-wa-direct {
+  color: #25d366;
+  background: rgba(37, 211, 102, 0.08);
+  border: 1px solid rgba(37, 211, 102, 0.15);
+  font-size: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+.btn-wa-direct:hover {
+  background: #25d366;
+  color: #080c14;
+  box-shadow: 0 0 10px rgba(37, 211, 102, 0.4);
+  transform: scale(1.1);
+}
