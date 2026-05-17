@@ -105,8 +105,7 @@ async function enrichLeadWebsite(url) {
 }
 
 
-// Global state to store the latest search data for instant download
-let currentSearchData = [];
+// Global state is no longer used for searches to support concurrent multi-user execution!
 
 // Helper to escape CSV values
 function escapeCSV(val) {
@@ -300,6 +299,12 @@ app.get('/api/scrape', async (req, res) => {
 
     const uniqueUrls = [...new Set(detailUrls)].slice(0, limit);
     sendEvent('status', { message: `Extraindo detalhes de ${uniqueUrls.length} estabelecimentos...` });
+
+    const timestamp = Date.now();
+    const jsonFilename = `leads_${timestamp}.json`;
+    const csvFilename = `leads_${timestamp}.csv`;
+    const jsonPath = path.join(DATA_DIR, jsonFilename);
+    const csvPath = path.join(DATA_DIR, csvFilename);
 
     const leads = [];
     const CONCURRENCY_LIMIT = 4; // Run up to 4 parallel workers for up to 400% speed increase!
@@ -517,7 +522,18 @@ app.get('/api/scrape', async (req, res) => {
           };
 
           leads.push(lead);
-          sendEvent('lead', { lead, index: currentIndex + 1, total: uniqueUrls.length });
+          
+          // Save progress incrementally so it is robust to cancellations
+          fs.writeFileSync(jsonPath, JSON.stringify(leads, null, 2), 'utf-8');
+          fs.writeFileSync(csvPath, convertToCSV(leads), 'utf-8');
+
+          sendEvent('lead', { 
+            lead, 
+            index: currentIndex + 1, 
+            total: uniqueUrls.length,
+            jsonFilename,
+            csvFilename
+          });
         } catch (err) {
           console.error(`Erro ao extrair item ${currentIndex + 1}:`, err.message);
           sendEvent('status', { message: `Erro ao extrair detalhes do item ${currentIndex + 1}. Pulando...` });
@@ -533,22 +549,10 @@ app.get('/api/scrape', async (req, res) => {
     }
     await Promise.all(workers);
 
-    sendEvent('status', { message: 'Salvando arquivos extraídos...' });
+    sendEvent('status', { message: 'Finalizando e salvando arquivos extraídos...' });
 
-    // Store in global state
-    currentSearchData = leads;
-
-    const timestamp = Date.now();
-    const jsonFilename = `leads_${timestamp}.json`;
-    const csvFilename = `leads_${timestamp}.csv`;
-
-    const jsonPath = path.join(DATA_DIR, jsonFilename);
-    const csvPath = path.join(DATA_DIR, csvFilename);
-
-    // Save JSON
+    // Save final JSON and CSV
     fs.writeFileSync(jsonPath, JSON.stringify(leads, null, 2), 'utf-8');
-
-    // Save CSV
     const csvContent = convertToCSV(leads);
     fs.writeFileSync(csvPath, csvContent, 'utf-8');
 
@@ -571,23 +575,48 @@ app.get('/api/scrape', async (req, res) => {
 
 // Download JSON endpoint
 app.get('/api/download/json', (req, res) => {
-  if (currentSearchData.length === 0) {
-    return res.status(404).json({ error: 'Nenhum dado disponível para download. Faça uma busca primeiro.' });
+  const filename = req.query.file;
+  if (!filename) {
+    return res.status(400).json({ error: 'Parâmetro "file" é obrigatório.' });
   }
+
+  const safeFilename = path.basename(filename);
+  if (!safeFilename.match(/^leads_\d+\.json$/)) {
+    return res.status(400).json({ error: 'Nome de arquivo inválido.' });
+  }
+
+  const filePath = path.join(DATA_DIR, safeFilename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Arquivo de download não encontrado.' });
+  }
+
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Content-Disposition', 'attachment; filename="leads_google_maps.json"');
-  res.send(JSON.stringify(currentSearchData, null, 2));
+  res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+  
+  const fileContent = fs.readFileSync(filePath, 'utf-8');
+  res.send(fileContent);
 });
 
 // Download CSV endpoint
 app.get('/api/download/csv', (req, res) => {
-  if (currentSearchData.length === 0) {
-    return res.status(404).json({ error: 'Nenhum dado disponível para download. Faça uma busca primeiro.' });
+  const filename = req.query.file;
+  if (!filename) {
+    return res.status(400).json({ error: 'Parâmetro "file" é obrigatório.' });
   }
-  const csvContent = convertToCSV(currentSearchData);
+
+  const safeFilename = path.basename(filename);
+  if (!safeFilename.match(/^leads_\d+\.csv$/)) {
+    return res.status(400).json({ error: 'Nome de arquivo inválido.' });
+  }
+
+  const filePath = path.join(DATA_DIR, safeFilename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Arquivo de download não encontrado.' });
+  }
+
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="leads_google_maps.csv"');
-  res.send('\uFEFF' + csvContent); // Add UTF-8 BOM for Excel compatibility
+  res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+  res.send('\uFEFF' + fs.readFileSync(filePath, 'utf-8')); // Add UTF-8 BOM for Excel compatibility
 });
 
 // Serve frontend

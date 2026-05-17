@@ -38,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let eventSource = null;
   let allLeads = [];
   let scrapeActive = false;
+  let activeJsonFilename = '';
+  let activeCsvFilename = '';
 
   // Add line to terminal console
   function addLog(message, type = 'normal') {
@@ -253,6 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Reset dashboard state
   function resetScrapeState() {
     allLeads = [];
+    activeJsonFilename = '';
+    activeCsvFilename = '';
     leadsTableBody.innerHTML = `
       <tr class="empty-row">
         <td colspan="10">
@@ -308,8 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
       tableFilter.disabled = false;
       addLog(`Extração concluída parcialmente com ${allLeads.length} leads.`, 'success');
       
-      downloadCsv.href = `/api/download/csv?t=${Date.now()}`;
-      downloadJson.href = `/api/download/json?t=${Date.now()}`;
+      downloadCsv.href = `/api/download/csv?file=${activeCsvFilename || `leads_${Date.now()}.csv`}`;
+      downloadJson.href = `/api/download/json?file=${activeJsonFilename || `leads_${Date.now()}.json`}`;
     }
   }
 
@@ -365,6 +369,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const lead = data.lead;
           allLeads.push(lead);
           
+          // Capture active filenames
+          if (data.jsonFilename) activeJsonFilename = data.jsonFilename;
+          if (data.csvFilename) activeCsvFilename = data.csvFilename;
+          
           // Append and update stats
           appendLeadToTable(lead, allLeads.length);
           updateStats();
@@ -387,8 +395,10 @@ document.addEventListener('DOMContentLoaded', () => {
           systemStatusText.textContent = 'Concluído';
           
           // Setup download links
-          downloadCsv.href = `/api/download/csv?t=${Date.now()}`;
-          downloadJson.href = `/api/download/json?t=${Date.now()}`;
+          const finalJson = data.jsonFilename || activeJsonFilename;
+          const finalCsv = data.csvFilename || activeCsvFilename;
+          downloadCsv.href = `/api/download/csv?file=${finalCsv}`;
+          downloadJson.href = `/api/download/json?file=${finalJson}`;
           exportCard.classList.add('visible');
           tableFilter.disabled = false;
           
