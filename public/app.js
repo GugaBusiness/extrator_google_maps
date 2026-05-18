@@ -145,6 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function appendLeadToTableDirect(lead, index) {
     const row = document.createElement('tr');
     row.dataset.index = index;
+    
+    // Smooth stagger delay waterfall effect (instant during live scrape)
+    const delay = scrapeActive ? 0 : Math.min(15, index) * 0.025;
+    row.style.animation = `rowFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) ${delay}s both`;
 
     // Build phone cell with quick copy and WhatsApp link if exists
     let phoneContent = '<span class="text-muted">Não possui</span>';
