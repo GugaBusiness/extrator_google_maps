@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align: center;">
         <div class="lead-actions">
           ${mapBtn}
-          <a href="${lead.url}" target="_blank" class="btn-action" title="Ver no Google Maps">
+          <a href="${lead.url}" target="_blank" class="btn-action btn-maps-link" title="Ver no Google Maps">
             <i class="fa-solid fa-map-location-dot"></i>
           </a>
         </div>
