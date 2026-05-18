@@ -721,4 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     loadSearchHistory();
   });
+
+  // Call on initial startup to populate history sidebar immediately
+  loadSearchHistory();
 });
