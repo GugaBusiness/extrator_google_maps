@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Leaflet Map CSS/JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -112,6 +115,16 @@
             <div class="log-line system">[SISTEMA] Sistema iniciado. Aguardando configurações de busca...</div>
           </div>
         </div>
+
+        <!-- Search History Container -->
+        <div class="history-section">
+          <div class="section-title">
+            <span><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Extrações</span>
+          </div>
+          <div class="history-list" id="history-list">
+            <div class="history-empty">Carregando histórico...</div>
+          </div>
+        </div>
       </section>
 
       <!-- Dashboard Stats (Right Column) -->
@@ -202,9 +215,25 @@
           <i class="fa-solid fa-table-list"></i>
           <h2>Leads Capturados</h2>
         </div>
-        <div class="table-search">
-          <i class="fa-solid fa-filter"></i>
-          <input type="text" id="table-filter" placeholder="Filtrar por nome, telefone, categoria..." disabled>
+        <div class="table-controls-wrapper">
+          <div class="filter-quick-chips">
+            <button class="filter-chip active" data-filter="all">Todos</button>
+            <button class="filter-chip" data-filter="has-site"><i class="fa-solid fa-earth-americas"></i> Com Site</button>
+            <button class="filter-chip" data-filter="has-phone"><i class="fa-brands fa-whatsapp"></i> Com WhatsApp</button>
+            <button class="filter-chip" data-filter="has-email"><i class="fa-solid fa-envelope"></i> Com E-mail</button>
+          </div>
+          <div class="sort-select-wrapper">
+            <i class="fa-solid fa-sort"></i>
+            <select id="table-sort" disabled>
+              <option value="none">Ordenação Padrão</option>
+              <option value="rating-desc">Melhor Nota ⭐</option>
+              <option value="reviews-desc">Mais Avaliados 💬</option>
+            </select>
+          </div>
+          <div class="table-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="table-filter" placeholder="Filtrar por nome, telefone..." disabled>
+          </div>
         </div>
       </div>
 
@@ -242,6 +271,20 @@
     <footer class="app-footer">
       <p>&copy; 2026 MapsMiner. Desenvolvido para extrações ultra-rápidas e estáveis.</p>
     </footer>
+  </div>
+
+  <!-- Map Modal -->
+  <div id="map-modal" class="map-modal">
+    <div class="map-modal-content">
+      <div class="map-modal-header">
+        <div class="map-modal-header-info">
+          <h3 id="map-modal-title">Nome do Lead</h3>
+          <span id="map-modal-address" class="map-address-label">Endereço do estabelecimento</span>
+        </div>
+        <button id="btn-close-map" class="btn-close-map" title="Fechar mapa"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="leaflet-map" class="leaflet-map-container"></div>
+    </div>
   </div>
 
   <script src="app.js"></script>

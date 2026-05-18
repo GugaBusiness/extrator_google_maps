@@ -86,13 +86,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Add lead row to UI Table
-  function appendLeadToTable(lead, index) {
-    // Remove empty state row if first lead
-    if (allLeads.length === 1) {
-      leadsTableBody.innerHTML = '';
-    }
+  // Leaflet map variables
+  let leafletMap = null;
+  let leafletMarker = null;
 
+  // Global show map modal trigger
+  window.showLeadMap = function(name, address, lat, lng) {
+    const modal = document.getElementById('map-modal');
+    const modalTitle = document.getElementById('map-modal-title');
+    const modalAddress = document.getElementById('map-modal-address');
+    
+    modalTitle.textContent = name;
+    modalAddress.textContent = address || 'Sem endereço cadastrado.';
+    modal.classList.add('visible');
+    
+    // Give modal time to animate display before Leaflet sizes container
+    setTimeout(() => {
+      if (!leafletMap) {
+        leafletMap = L.map('leaflet-map').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(leafletMap);
+      } else {
+        leafletMap.setView([lat, lng], 15);
+      }
+      
+      if (leafletMarker) {
+        leafletMarker.setLatLng([lat, lng]);
+      } else {
+        leafletMarker = L.marker([lat, lng]).addTo(leafletMap);
+      }
+      
+      leafletMarker.bindPopup(`<b>${name}</b>`).openPopup();
+      
+      // Force map recalculation
+      leafletMap.invalidateSize();
+    }, 200);
+  };
+
+  // Close map modal
+  document.getElementById('btn-close-map').addEventListener('click', () => {
+    document.getElementById('map-modal').classList.remove('visible');
+  });
+
+  // Close map modal on clicking overlay
+  document.getElementById('map-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'map-modal') {
+      document.getElementById('map-modal').classList.remove('visible');
+    }
+  });
+
+  // Filtering and Sorting Application State
+  let activeFilterChip = 'all';
+  let activeSortOption = 'none';
+
+  // Add lead row to UI Table directly (no filter checks)
+  function appendLeadToTableDirect(lead, index) {
     const row = document.createElement('tr');
     row.dataset.index = index;
 
@@ -213,6 +263,16 @@ document.addEventListener('DOMContentLoaded', () => {
         <i class="fa-solid fa-star"></i> ${lead.rating}
       </div>` : '<span class="text-muted">-</span>';
 
+    // Map button only if lat/lng are present
+    let mapBtn = '';
+    if (lead.lat && lead.lng) {
+      mapBtn = `
+        <button class="btn-action btn-map-view" onclick="window.showLeadMap('${lead.name.replace(/'/g, "\\'")}', '${lead.address.replace(/'/g, "\\'")}', ${lead.lat}, ${lead.lng})" title="Ver no Mapa Interativo">
+          <i class="fa-solid fa-location-dot"></i>
+        </button>
+      `;
+    }
+
     row.innerHTML = `
       <td class="lead-index">${index}</td>
       <td><span class="lead-name">${lead.name}</span></td>
@@ -225,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <td style="text-align: center;">${ratingBadge}</td>
       <td style="text-align: center;">
         <div class="lead-actions">
+          ${mapBtn}
           <a href="${lead.url}" target="_blank" class="btn-action" title="Ver no Google Maps">
             <i class="fa-solid fa-map-location-dot"></i>
           </a>
@@ -235,22 +296,184 @@ document.addEventListener('DOMContentLoaded', () => {
     leadsTableBody.appendChild(row);
   }
 
-  // Filter table rows on search input
-  tableFilter.addEventListener('input', (e) => {
-    const filterText = e.target.value.toLowerCase().trim();
-    const rows = leadsTableBody.querySelectorAll('tr');
+  // Reactive UI Redraw based on state, filters, sorting
+  function renderFilteredTable() {
+    const filterText = tableFilter.value.toLowerCase().trim();
     
-    if (rows.length === 0 || rows[0].classList.contains('empty-row')) return;
+    // 1. Filter leads
+    let filtered = [...allLeads];
+    
+    if (activeFilterChip === 'has-site') {
+      filtered = filtered.filter(l => l.website);
+    } else if (activeFilterChip === 'has-phone') {
+      filtered = filtered.filter(l => l.phone);
+    } else if (activeFilterChip === 'has-email') {
+      filtered = filtered.filter(l => l.email);
+    }
+    
+    if (filterText) {
+      filtered = filtered.filter(l => 
+        (l.name && l.name.toLowerCase().includes(filterText)) ||
+        (l.phone && l.phone.toLowerCase().includes(filterText)) ||
+        (l.category && l.category.toLowerCase().includes(filterText)) ||
+        (l.address && l.address.toLowerCase().includes(filterText)) ||
+        (l.email && l.email.toLowerCase().includes(filterText))
+      );
+    }
+    
+    // 2. Sort leads
+    if (activeSortOption === 'rating-desc') {
+      filtered.sort((a, b) => {
+        const ra = parseFloat(a.rating) || 0;
+        const rb = parseFloat(b.rating) || 0;
+        return rb - ra;
+      });
+    } else if (activeSortOption === 'reviews-desc') {
+      filtered.sort((a, b) => {
+        const ca = parseInt(a.reviewsCount) || 0;
+        const cb = parseInt(b.reviewsCount) || 0;
+        return cb - ca;
+      });
+    }
+    
+    // 3. Render
+    leadsTableBody.innerHTML = '';
+    
+    if (filtered.length === 0) {
+      leadsTableBody.innerHTML = `
+        <tr class="empty-row">
+          <td colspan="10">
+            <div class="empty-state">
+              <i class="fa-solid fa-folder-open empty-icon"></i>
+              <p>Nenhum lead encontrado com os filtros aplicados.</p>
+            </div>
+          </td>
+        </tr>
+      `;
+      return;
+    }
+    
+    filtered.forEach((lead, i) => {
+      appendLeadToTableDirect(lead, i + 1);
+    });
+  }
 
-    rows.forEach(row => {
-      const text = row.innerText.toLowerCase();
-      if (text.includes(filterText)) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
+  // Reactive push handler called by SSE Event Listener
+  function appendLeadToTable(lead, index) {
+    // Simply trigger redrawing leads table (which filters/sorts in real-time)
+    renderFilteredTable();
+  }
+
+  // Quick Chips Event Listeners
+  const filterChips = document.querySelectorAll('.filter-chip');
+  filterChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      filterChips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeFilterChip = chip.getAttribute('data-filter');
+      renderFilteredTable();
     });
   });
+
+  // Sorting Dropdown Listener
+  const tableSort = document.getElementById('table-sort');
+  tableSort.addEventListener('change', (e) => {
+    activeSortOption = e.target.value;
+    renderFilteredTable();
+  });
+
+  // Text Filter Listener
+  tableFilter.addEventListener('input', () => {
+    renderFilteredTable();
+  });
+
+  // Load Search History from server
+  function loadSearchHistory() {
+    fetch('/api/history')
+      .then(res => res.json())
+      .then(history => {
+        const historyList = document.getElementById('history-list');
+        if (!historyList) return;
+        
+        if (history.length === 0) {
+          historyList.innerHTML = '<div class="history-empty">Nenhuma busca no histórico.</div>';
+          return;
+        }
+        
+        historyList.innerHTML = '';
+        history.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'history-item';
+          div.title = `Clique para carregar esta busca: ${item.leadsCount} leads`;
+          
+          const formattedDate = new Date(item.date).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          div.innerHTML = `
+            <div class="history-item-icon">
+              <i class="fa-solid fa-file-csv"></i>
+            </div>
+            <div class="history-item-details">
+              <span class="history-item-title">${item.title}</span>
+              <span class="history-item-subtitle">${item.subtitle} • <span class="badge-count">${item.leadsCount} leads</span></span>
+            </div>
+            <span class="history-item-date">${formattedDate}</span>
+          `;
+          
+          div.addEventListener('click', () => {
+            loadHistoricalSearch(item.filename);
+          });
+          
+          historyList.appendChild(div);
+        });
+      })
+      .catch(err => console.error('Erro ao carregar histórico:', err));
+  }
+
+  // Load selected search history details into dashboard
+  function loadHistoricalSearch(filename) {
+    addLog(`Carregando busca histórica: ${filename}...`, 'system');
+    
+    // Reset filters
+    activeFilterChip = 'all';
+    filterChips.forEach(c => c.classList.remove('active'));
+    document.querySelector('.filter-chip[data-filter="all"]').classList.add('active');
+    
+    activeSortOption = 'none';
+    tableSort.value = 'none';
+    tableFilter.value = '';
+    
+    fetch(`/api/history/load?file=${filename}`)
+      .then(res => res.json())
+      .then(data => {
+        allLeads = data.leads;
+        activeJsonFilename = data.jsonFilename;
+        activeCsvFilename = data.csvFilename;
+        
+        // Update Stats and redraw
+        updateStats();
+        renderFilteredTable();
+        
+        // Enable controls
+        exportCard.classList.add('visible');
+        tableFilter.disabled = false;
+        tableSort.disabled = false;
+        
+        // Setup download links
+        downloadCsv.href = `/api/download/csv?file=${activeCsvFilename}`;
+        downloadJson.href = `/api/download/json?file=${activeJsonFilename}`;
+        
+        addLog(`Carregados ${allLeads.length} leads do histórico com sucesso!`, 'success');
+      })
+      .catch(err => {
+        console.error('Erro ao carregar histórico:', err);
+        addLog(`Erro ao carregar histórico do arquivo.`, 'error');
+      });
+  }
 
   // Reset dashboard state
   function resetScrapeState() {
@@ -282,6 +505,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Disable inputs
     tableFilter.value = '';
     tableFilter.disabled = true;
+    tableSort.value = 'none';
+    tableSort.disabled = true;
+    activeFilterChip = 'all';
+    filterChips.forEach(c => c.classList.remove('active'));
+    document.querySelector('.filter-chip[data-filter="all"]').classList.add('active');
+    
     exportCard.classList.remove('visible');
   }
 
@@ -310,6 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (allLeads.length > 0) {
       exportCard.classList.add('visible');
       tableFilter.disabled = false;
+      tableSort.disabled = false;
       addLog(`Extração concluída parcialmente com ${allLeads.length} leads.`, 'success');
       
       downloadCsv.href = `/api/download/csv?file=${activeCsvFilename || `leads_${Date.now()}.csv`}`;
@@ -401,6 +631,8 @@ document.addEventListener('DOMContentLoaded', () => {
           downloadJson.href = `/api/download/json?file=${finalJson}`;
           exportCard.classList.add('visible');
           tableFilter.disabled = false;
+          tableSort.disabled = false;
+          loadSearchHistory();
           
           // Cleanup
           eventSource.close();
@@ -437,5 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
       addLog('A conexão com o servidor foi perdida ou interrompida.', 'error');
       stopScrape();
     };
+    loadSearchHistory();
   });
 });

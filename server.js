@@ -396,9 +396,13 @@ app.get('/api/scrape', async (req, res) => {
 
           // Extract Address
           let address = '';
-          const addressEl = await detailPage.locator('button[data-item-id="address"]').first().catch(() => null);
-          if (addressEl) {
-            address = await addressEl.innerText().catch(() => '');
+          try {
+            const addressEl = detailPage.locator('button[data-item-id="address"]').first();
+            if (await addressEl.count() > 0) {
+              address = await addressEl.innerText();
+            }
+          } catch (e) {
+            // Ignore
           }
           
           if (!address) {
@@ -427,7 +431,15 @@ app.get('/api/scrape', async (req, res) => {
           address = address.replace(/[\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
 
           // Extract Website
-          let website = await detailPage.locator('a[data-item-id="authority"]').first().getAttribute('href').catch(() => '');
+          let website = '';
+          try {
+            const authorityEl = detailPage.locator('a[data-item-id="authority"]').first();
+            if (await authorityEl.count() > 0) {
+              website = await authorityEl.getAttribute('href');
+            }
+          } catch (e) {
+            // Ignore
+          }
           
           if (!website) {
             // Fallback via SVG globe/authority path detection
@@ -460,7 +472,15 @@ app.get('/api/scrape', async (req, res) => {
           }
 
           // Extract Phone
-          let phone = await detailPage.locator('button[data-item-id^="phone:tel:"]').first().innerText().catch(() => '');
+          let phone = '';
+          try {
+            const phoneEl = detailPage.locator('button[data-item-id^="phone:tel:"]').first();
+            if (await phoneEl.count() > 0) {
+              phone = await phoneEl.innerText();
+            }
+          } catch (e) {
+            // Ignore
+          }
           
           if (!phone) {
             // Fallback via SVG phone path detection
@@ -617,6 +637,89 @@ app.get('/api/download/csv', (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
   res.send('\uFEFF' + fs.readFileSync(filePath, 'utf-8')); // Add UTF-8 BOM for Excel compatibility
+});
+
+// Get search history endpoint
+app.get('/api/history', (req, res) => {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      return res.json([]);
+    }
+    const files = fs.readdirSync(DATA_DIR);
+    const history = [];
+    
+    for (const file of files) {
+      if (file.startsWith('leads_') && file.endsWith('.json')) {
+        const filePath = path.join(DATA_DIR, file);
+        const stats = fs.statSync(filePath);
+        
+        try {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const leads = JSON.parse(content);
+          if (Array.isArray(leads) && leads.length > 0) {
+            const first = leads[0];
+            const category = first.category || 'Geral';
+            
+            // Infer city from address (e.g. "... - Pinheiros, São Paulo - SP ...")
+            let city = 'Geral';
+            if (first.address) {
+              const parts = first.address.split('-');
+              if (parts.length >= 2) {
+                city = parts[parts.length - 2].trim().replace(/\d/g, '');
+              }
+            }
+            history.push({
+              filename: file,
+              timestamp: file.replace('leads_', '').replace('.json', ''),
+              leadsCount: leads.length,
+              title: `${category}`,
+              subtitle: city,
+              date: stats.mtime
+            });
+          }
+        } catch (e) {
+          // Skip corrupt files
+        }
+      }
+    }
+    
+    // Sort by date descending
+    history.sort((a, b) => new Date(b.date) - new Date(a.date));
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Load history endpoint
+app.get('/api/history/load', (req, res) => {
+  const filename = req.query.file;
+  if (!filename) {
+    return res.status(400).json({ error: 'Parâmetro "file" é obrigatório.' });
+  }
+
+  const safeFilename = path.basename(filename);
+  if (!safeFilename.match(/^leads_\d+\.json$/)) {
+    return res.status(400).json({ error: 'Nome de arquivo inválido.' });
+  }
+
+  const filePath = path.join(DATA_DIR, safeFilename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Arquivo histórico não encontrado.' });
+  }
+
+  try {
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const leads = JSON.parse(fileContent);
+    const csvFilename = safeFilename.replace('.json', '.csv');
+    res.json({
+      leads,
+      jsonFilename: safeFilename,
+      csvFilename
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Serve frontend

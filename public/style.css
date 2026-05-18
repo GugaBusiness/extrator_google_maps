@@ -1201,3 +1201,317 @@ tr:hover td {
   box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
   transform: scale(1.1);
 }
+
+/* ==========================================
+   Premium UX & UI Improvements
+   ========================================== */
+
+/* 1. Search History Styles */
+.history-section {
+  margin-top: 24px;
+  border-top: 1px solid var(--border-light);
+  padding-top: 20px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.history-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 4px;
+}
+
+.history-empty {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 20px 0;
+  border: 1px dashed var(--border-light);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--primary-glow);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.15);
+  transform: translateY(-2px);
+}
+
+.history-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(108, 92, 231, 0.1);
+  color: var(--primary-color);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.history-item:hover .history-item-icon {
+  background: var(--primary-color);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(108, 92, 231, 0.5);
+}
+
+.history-item-details {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.history-item-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.badge-count {
+  background: rgba(0, 206, 201, 0.12);
+  color: #00cec9;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.history-item-date {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* 2. Advanced Controls Styles */
+.table-controls-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-quick-chips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-chip {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-light);
+  border-color: var(--text-muted);
+}
+
+.filter-chip.active {
+  background: var(--primary-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(108, 92, 231, 0.4);
+}
+
+.sort-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 38px;
+}
+
+.sort-select-wrapper i {
+  color: var(--primary-color);
+  font-size: 12px;
+}
+
+.sort-select-wrapper select {
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  padding-right: 8px;
+}
+
+.sort-select-wrapper select option {
+  background: #0f111a;
+  color: var(--text-light);
+}
+
+/* 3. Map Modal Styles */
+.map-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(7, 9, 15, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-modal.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.map-modal-content {
+  background: rgba(15, 17, 26, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(108, 92, 231, 0.15);
+  width: 90%;
+  max-width: 650px;
+  border-radius: 16px;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-modal.visible .map-modal-content {
+  transform: scale(1);
+}
+
+.map-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.map-modal-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.map-modal-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-light);
+  margin: 0;
+}
+
+.map-address-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.btn-close-map {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-close-map:hover {
+  background: #ff7675;
+  color: #fff;
+  border-color: transparent;
+  transform: rotate(90deg);
+}
+
+.leaflet-map-container {
+  height: 380px;
+  width: 100%;
+  background: #121420;
+}
+
+/* Custom styles for leaflet markers to look neon */
+.leaflet-popup-content-wrapper {
+  background: #171926 !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+
+.leaflet-popup-tip {
+  background: #171926 !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--text-muted) !important;
+}
+
+.btn-action.btn-map-view {
+  color: #ff7675;
+  background: rgba(255, 118, 117, 0.08);
+  border-color: rgba(255, 118, 117, 0.15);
+}
+
+.btn-action.btn-map-view:hover {
+  background: #ff7675;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 118, 117, 0.4);
+  transform: scale(1.1);
+}
+
