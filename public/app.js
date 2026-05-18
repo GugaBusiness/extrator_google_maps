@@ -722,6 +722,27 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSearchHistory();
   });
 
+  // Fullscreen Table Mode Toggle
+  const btnToggleFullscreen = document.getElementById('btn-toggle-fullscreen');
+  const tablePanel = document.querySelector('.table-panel');
+  
+  if (btnToggleFullscreen && tablePanel) {
+    btnToggleFullscreen.addEventListener('click', () => {
+      const isFullscreen = tablePanel.classList.toggle('fullscreen');
+      const icon = btnToggleFullscreen.querySelector('i');
+      
+      if (isFullscreen) {
+        icon.className = 'fa-solid fa-compress';
+        btnToggleFullscreen.title = 'Minimizar Tabela';
+        addLog('Modo Tela Cheia ativado.', 'system');
+      } else {
+        icon.className = 'fa-solid fa-expand';
+        btnToggleFullscreen.title = 'Ver em Tela Cheia';
+        addLog('Modo Tela Cheia desativado.', 'system');
+      }
+    });
+  }
+
   // Call on initial startup to populate history sidebar immediately
   loadSearchHistory();
 });

@@ -825,13 +825,59 @@ input:checked + .slider:before {
 .table-panel {
   display: flex;
   flex-direction: column;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bounds height in regular view to avoid infinite page scroll */
+.table-panel:not(.fullscreen) .table-wrapper {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+/* Premium Fullscreen Dashboard Table Mode */
+.table-panel.fullscreen {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+  width: calc(100vw - 48px);
+  height: calc(100vh - 48px);
+  z-index: 9999;
+  background: rgba(13, 20, 35, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.95), 0 0 50px rgba(124, 58, 237, 0.2);
+  animation: modalFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  display: flex;
+  flex-direction: column;
+  max-width: none !important;
+}
+
+@keyframes modalFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.97) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.table-panel.fullscreen .table-wrapper {
+  flex-grow: 1;
+  max-height: none !important;
+  height: calc(100% - 90px);
+  overflow-y: auto;
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border-light);
   gap: 20px;
   flex-wrap: wrap;
@@ -841,6 +887,41 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.btn-toggle-fullscreen {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-toggle-fullscreen:hover {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
+  transform: scale(1.1);
+}
+
+.table-panel.fullscreen .btn-toggle-fullscreen {
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.08);
+  border-color: rgba(6, 182, 212, 0.15);
+}
+
+.table-panel.fullscreen .btn-toggle-fullscreen:hover {
+  background: var(--accent-cyan);
+  color: #080c14;
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
 }
 
 .table-title h2 {

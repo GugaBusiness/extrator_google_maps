@@ -204,68 +204,71 @@
           </div>
         </div>
 
+        <!-- Table Section (Compact / Expandable) -->
+        <section class="glass-panel table-panel">
+          <div class="table-header">
+            <div class="table-title">
+              <i class="fa-solid fa-table-list"></i>
+              <h2>Leads Capturados</h2>
+              <button type="button" class="btn-toggle-fullscreen" id="btn-toggle-fullscreen" title="Ver em Tela Cheia">
+                <i class="fa-solid fa-expand"></i>
+              </button>
+            </div>
+            <div class="table-controls-wrapper">
+              <div class="filter-quick-chips">
+                <button class="filter-chip active" data-filter="all">Todos</button>
+                <button class="filter-chip" data-filter="has-site"><i class="fa-solid fa-earth-americas"></i> Com Site</button>
+                <button class="filter-chip" data-filter="has-phone"><i class="fa-brands fa-whatsapp"></i> Com WhatsApp</button>
+                <button class="filter-chip" data-filter="has-email"><i class="fa-solid fa-envelope"></i> Com E-mail</button>
+              </div>
+              <div class="sort-select-wrapper">
+                <i class="fa-solid fa-sort"></i>
+                <select id="table-sort" disabled>
+                  <option value="none">Ordenação Padrão</option>
+                  <option value="rating-desc">Melhor Nota ⭐</option>
+                  <option value="reviews-desc">Mais Avaliados 💬</option>
+                </select>
+              </div>
+              <div class="table-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="table-filter" placeholder="Filtrar por nome, telefone..." disabled>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table id="leads-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th>Nome</th>
+                  <th>Categoria</th>
+                  <th>Telefone</th>
+                  <th>E-mail</th>
+                  <th>Redes Sociais</th>
+                  <th>Website</th>
+                  <th>Endereço</th>
+                  <th style="width: 80px; text-align: center;">Nota</th>
+                  <th style="width: 90px; text-align: center;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="leads-table-body">
+                <tr class="empty-row">
+                  <td colspan="10">
+                    <div class="empty-state">
+                      <i class="fa-solid fa-folder-open empty-icon"></i>
+                      <p>Nenhum lead extraído ainda. Defina os termos da busca acima e clique em "Iniciar Mineração"!</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
       </section>
 
     </main>
-
-    <!-- Table Section (Full Width) -->
-    <section class="glass-panel table-panel">
-      <div class="table-header">
-        <div class="table-title">
-          <i class="fa-solid fa-table-list"></i>
-          <h2>Leads Capturados</h2>
-        </div>
-        <div class="table-controls-wrapper">
-          <div class="filter-quick-chips">
-            <button class="filter-chip active" data-filter="all">Todos</button>
-            <button class="filter-chip" data-filter="has-site"><i class="fa-solid fa-earth-americas"></i> Com Site</button>
-            <button class="filter-chip" data-filter="has-phone"><i class="fa-brands fa-whatsapp"></i> Com WhatsApp</button>
-            <button class="filter-chip" data-filter="has-email"><i class="fa-solid fa-envelope"></i> Com E-mail</button>
-          </div>
-          <div class="sort-select-wrapper">
-            <i class="fa-solid fa-sort"></i>
-            <select id="table-sort" disabled>
-              <option value="none">Ordenação Padrão</option>
-              <option value="rating-desc">Melhor Nota ⭐</option>
-              <option value="reviews-desc">Mais Avaliados 💬</option>
-            </select>
-          </div>
-          <div class="table-search">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="table-filter" placeholder="Filtrar por nome, telefone..." disabled>
-          </div>
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table id="leads-table">
-          <thead>
-            <tr>
-              <th style="width: 50px;">#</th>
-              <th>Nome</th>
-              <th>Categoria</th>
-              <th>Telefone</th>
-              <th>E-mail</th>
-              <th>Redes Sociais</th>
-              <th>Website</th>
-              <th>Endereço</th>
-              <th style="width: 80px; text-align: center;">Nota</th>
-              <th style="width: 90px; text-align: center;">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="leads-table-body">
-            <tr class="empty-row">
-              <td colspan="10">
-                <div class="empty-state">
-                  <i class="fa-solid fa-folder-open empty-icon"></i>
-                  <p>Nenhum lead extraído ainda. Defina os termos da busca acima e clique em "Iniciar Mineração"!</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
 
     <!-- Footer -->
     <footer class="app-footer">
