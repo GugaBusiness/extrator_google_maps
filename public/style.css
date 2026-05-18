@@ -608,15 +608,20 @@ input:checked + .slider:before {
   align-items: center;
   gap: 20px;
   height: 110px;
-  border: 1px solid var(--border-light);
   position: relative;
+  background: linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+              linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)) border-box;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stat-card:hover {
   transform: translateY(-6px);
-  border-color: rgba(168, 85, 247, 0.4);
-  box-shadow: 0 12px 30px rgba(168, 85, 247, 0.12), 0 0 20px rgba(59, 130, 246, 0.15);
+  background: linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+              linear-gradient(135deg, #a855f7, #3b82f6) border-box;
+  border-color: transparent;
+  box-shadow: 0 15px 30px rgba(168, 85, 247, 0.18), 0 0 30px rgba(59, 130, 246, 0.15);
 }
 
 .stat-icon-wrapper {
