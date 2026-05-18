@@ -1339,6 +1339,38 @@ tr:hover td {
   white-space: nowrap;
 }
 
+.history-item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.delete-history-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+.history-item:hover .delete-history-btn {
+  opacity: 0.6;
+  transform: scale(1);
+}
+
+.delete-history-btn:hover {
+  color: #ff7675 !important;
+  opacity: 1 !important;
+  background: rgba(255, 118, 117, 0.12);
+  box-shadow: 0 0 8px rgba(255, 118, 117, 0.2);
+}
+
 /* 2. Advanced Controls Styles */
 .table-controls-wrapper {
   display: flex;

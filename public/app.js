@@ -421,17 +421,63 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="history-item-title">${item.title}</span>
               <span class="history-item-subtitle">${item.subtitle} • <span class="badge-count">${item.leadsCount} leads</span></span>
             </div>
-            <span class="history-item-date">${formattedDate}</span>
+            <div class="history-item-actions">
+              <span class="history-item-date">${formattedDate}</span>
+              <button class="delete-history-btn" title="Excluir busca" data-file="${item.filename}">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
           `;
           
           div.addEventListener('click', () => {
             loadHistoricalSearch(item.filename);
           });
+
+          const deleteBtn = div.querySelector('.delete-history-btn');
+          if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+              e.stopPropagation(); // Avoid loading the clicked history card
+              if (confirm(`Deseja realmente excluir permanentemente a busca "${item.title}"?`)) {
+                deleteHistoryItem(item.filename);
+              }
+            });
+          }
           
           historyList.appendChild(div);
         });
       })
       .catch(err => console.error('Erro ao carregar histórico:', err));
+  }
+
+  // Delete search history item from server and reset UI if active
+  function deleteHistoryItem(filename) {
+    fetch(`/api/history?file=${filename}`, {
+      method: 'DELETE'
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          addLog('Busca histórica excluída com sucesso.', 'success');
+          
+          // Clear active display if it corresponds to the deleted history
+          if (activeJsonFilename === filename) {
+            allLeads = [];
+            activeJsonFilename = '';
+            activeCsvFilename = '';
+            updateStats();
+            renderFilteredTable();
+            document.getElementById('export-card').classList.remove('visible');
+          }
+          
+          loadSearchHistory();
+        } else {
+          addLog(`Erro ao excluir histórico: ${data.error || 'Erro desconhecido'}`, 'error');
+        }
+      })
+      .catch(err => {
+        console.error('Erro ao excluir histórico:', err);
+        addLog('Falha na comunicação com o servidor ao excluir histórico.', 'error');
+      });
   }
 
   // Load selected search history details into dashboard

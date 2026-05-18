@@ -722,6 +722,42 @@ app.get('/api/history/load', (req, res) => {
   }
 });
 
+// Delete history endpoint
+app.delete('/api/history', (req, res) => {
+  const filename = req.query.file;
+  if (!filename) {
+    return res.status(400).json({ error: 'Parâmetro "file" é obrigatório.' });
+  }
+
+  const safeFilename = path.basename(filename);
+  if (!safeFilename.match(/^leads_\d+\.json$/)) {
+    return res.status(400).json({ error: 'Nome de arquivo inválido.' });
+  }
+
+  const jsonPath = path.join(DATA_DIR, safeFilename);
+  const csvPath = path.join(DATA_DIR, safeFilename.replace('.json', '.csv'));
+
+  try {
+    let deletedCount = 0;
+    if (fs.existsSync(jsonPath)) {
+      fs.unlinkSync(jsonPath);
+      deletedCount++;
+    }
+    if (fs.existsSync(csvPath)) {
+      fs.unlinkSync(csvPath);
+      deletedCount++;
+    }
+
+    if (deletedCount === 0) {
+      return res.status(404).json({ error: 'Nenhum arquivo encontrado para exclusão.' });
+    }
+
+    res.json({ success: true, message: 'Histórico excluído com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Serve frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
