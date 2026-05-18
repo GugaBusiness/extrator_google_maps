@@ -269,6 +269,7 @@ body {
   display: grid;
   grid-template-columns: 460px 1fr;
   gap: 24px;
+  align-items: start;
 }
 
 @media (max-width: 1024px) {
