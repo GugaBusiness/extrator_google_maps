@@ -100,124 +100,7 @@ app.get('/api/download/csv', (req, res) => {
   res.send('\uFEFF' + fs.readFileSync(filePath, 'utf-8')); // Add UTF-8 BOM for Excel compatibility
 });
 
-// Get search history endpoint
-app.get('/api/history', (req, res) => {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      return res.json([]);
-    }
-    const files = fs.readdirSync(DATA_DIR);
-    const history = [];
-    
-    for (const file of files) {
-      if (file.startsWith('leads_') && file.endsWith('.json')) {
-        const filePath = path.join(DATA_DIR, file);
-        const stats = fs.statSync(filePath);
-        
-        try {
-          const content = fs.readFileSync(filePath, 'utf-8');
-          const leads = JSON.parse(content);
-          if (Array.isArray(leads) && leads.length > 0) {
-            const first = leads[0];
-            const category = first.category || 'Geral';
-            
-            // Infer city from address (e.g. "... - Pinheiros, São Paulo - SP ...")
-            let city = 'Geral';
-            if (first.address) {
-              const parts = first.address.split('-');
-              if (parts.length >= 2) {
-                city = parts[parts.length - 2].trim().replace(/\d/g, '');
-              }
-            }
-            history.push({
-              filename: file,
-              timestamp: file.replace('leads_', '').replace('.json', ''),
-              leadsCount: leads.length,
-              title: `${category}`,
-              subtitle: city,
-              date: stats.mtime
-            });
-          }
-        } catch (e) {
-          // Skip corrupt files
-        }
-      }
-    }
-    
-    // Sort by date descending
-    history.sort((a, b) => new Date(b.date) - new Date(a.date));
-    res.json(history);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Load history endpoint
-app.get('/api/history/load', (req, res) => {
-  const filename = req.query.file;
-  if (!filename) {
-    return res.status(400).json({ error: 'Parâmetro "file" é obrigatório.' });
-  }
-
-  const safeFilename = path.basename(filename);
-  if (!safeFilename.match(/^leads_\d+\.json$/)) {
-    return res.status(400).json({ error: 'Nome de arquivo inválido.' });
-  }
-
-  const filePath = path.join(DATA_DIR, safeFilename);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Arquivo histórico não encontrado.' });
-  }
-
-  try {
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const leads = JSON.parse(fileContent);
-    const csvFilename = safeFilename.replace('.json', '.csv');
-    res.json({
-      leads,
-      jsonFilename: safeFilename,
-      csvFilename
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Delete history endpoint
-app.delete('/api/history', (req, res) => {
-  const filename = req.query.file;
-  if (!filename) {
-    return res.status(400).json({ error: 'Parâmetro "file" é obrigatório.' });
-  }
-
-  const safeFilename = path.basename(filename);
-  if (!safeFilename.match(/^leads_\d+\.json$/)) {
-    return res.status(400).json({ error: 'Nome de arquivo inválido.' });
-  }
-
-  const jsonPath = path.join(DATA_DIR, safeFilename);
-  const csvPath = path.join(DATA_DIR, safeFilename.replace('.json', '.csv'));
-
-  try {
-    let deletedCount = 0;
-    if (fs.existsSync(jsonPath)) {
-      fs.unlinkSync(jsonPath);
-      deletedCount++;
-    }
-    if (fs.existsSync(csvPath)) {
-      fs.unlinkSync(csvPath);
-      deletedCount++;
-    }
-
-    if (deletedCount === 0) {
-      return res.status(404).json({ error: 'Nenhum arquivo encontrado para exclusão.' });
-    }
-
-    res.json({ success: true, message: 'Histórico excluído com sucesso.' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Old redundant endpoints removed to prioritize secured routes.
 
 // Public Configuration Endpoint (Supabase Credentials)
 app.get('/api/config', (req, res) => {
@@ -250,18 +133,39 @@ const authenticateUser = async (req, res, next) => {
   }
 };
 
-// Get User Profile (Credits and Plan info)
+// Get User Profile (Credits and Plan info) - Generates profile on the fly if missing!
 app.get('/api/profile', authenticateUser, async (req, res) => {
   const supabase = require('./supabaseClient');
   try {
-    const { data: profile, error } = await supabase
+    let { data: profile, error } = await supabase
       .from('profiles')
       .select('credits, plan')
       .eq('id', req.user.id)
-      .single();
+      .maybeSingle();
 
-    if (error || !profile) {
-      return res.status(404).json({ error: 'Perfil de usuário não encontrado.' });
+    if (error) {
+      return res.status(500).json({ error: 'Erro ao conectar ao banco de dados: ' + error.message });
+    }
+
+    // Auto-create profile with 50 credits if not found (eliminates manual triggers requirement)
+    if (!profile) {
+      console.log(`[AUTH] Perfil não encontrado para ${req.user.email}. Criando perfil dinâmico com 50 créditos...`);
+      const { data: newProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: req.user.id,
+          email: req.user.email,
+          credits: 50,
+          plan: 'free'
+        })
+        .select('credits, plan')
+        .single();
+
+      if (insertError) {
+        console.error("[AUTH] Erro ao criar perfil dinâmico:", insertError.message);
+        return res.status(500).json({ error: 'Erro ao criar perfil de usuário no banco de dados.' });
+      }
+      profile = newProfile;
     }
 
     res.json({

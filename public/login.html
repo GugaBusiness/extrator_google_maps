@@ -303,6 +303,14 @@
             throw new Error('Este endereço de e-mail já está cadastrado.');
           }
 
+          // Check if session is null (which means email confirmation is active in Supabase Auth settings)
+          if (!data.session) {
+            showAlert('Conta pré-cadastrada! Enviamos um link de ativação para o seu e-mail. Por favor, confirme o e-mail na sua caixa de entrada para poder fazer login.', 'success');
+            btnSubmit.disabled = false;
+            btnText.textContent = 'Criar Conta Grátis';
+            return;
+          }
+
           showAlert('Cadastro realizado com sucesso! Sua conta foi ativada com 50 créditos grátis. Entrando...', 'success');
           setTimeout(() => {
             window.location.href = '/';
