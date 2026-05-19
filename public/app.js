@@ -630,7 +630,9 @@ document.addEventListener('DOMContentLoaded', () => {
     systemStatusText.textContent = 'Extraindo...';
     progressStatusText.textContent = 'Iniciando navegador...';
     
-    addLog(`Iniciando extração para: "${    // Connect to SaaS Queue API instead of direct síncrono SSE
+    addLog(`Iniciando extração para: "${query}" (Limite: ${limit})`, 'system');
+
+    // Connect to SaaS Queue API instead of direct síncrono SSE
     addLog('Enviando busca para a fila de processamento assíncrona na VPS...', 'system');
     progressStatusText.textContent = 'Enfileirando tarefa...';
 
@@ -762,6 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cityInput.disabled = false;
       limitInput.disabled = false;
       headlessMode.disabled = false;
+    });
     loadSearchHistory();
   });
 
