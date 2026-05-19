@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MapsMiner | Entrar ou Cadastrar-se</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Specific overrides for the Login screen to make it ultra premium */
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+    }
+    .auth-container {
+      width: 100%;
+      max-width: 440px;
+      padding: 20px;
+      z-index: 10;
+    }
+    .auth-card {
+      padding: 40px;
+      border-radius: 24px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-logo-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .auth-logo-icon {
+      font-size: 36px;
+      color: #9d4edd;
+      background: rgba(157, 78, 221, 0.15);
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 20px;
+      margin-bottom: 15px;
+      border: 1px solid rgba(157, 78, 221, 0.3);
+      box-shadow: 0 0 20px rgba(157, 78, 221, 0.2);
+      animation: rotatePulse 4s infinite ease-in-out;
+    }
+    @keyframes rotatePulse {
+      0% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.08) rotate(180deg); }
+      100% { transform: scale(1) rotate(360deg); }
+    }
+    .auth-logo-area h2 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      margin: 0;
+    }
+    .auth-logo-area h2 span {
+      background: linear-gradient(135deg, #9d4edd, #e0aaff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .auth-logo-area p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin: 5px 0 0 0;
+    }
+    .auth-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 6px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .auth-tab {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      padding: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .auth-tab.active {
+      background: linear-gradient(135deg, #9d4edd, #7b2cbf);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(157, 78, 221, 0.3);
+    }
+    .auth-form {
+      text-align: left;
+    }
+    .auth-form .input-group {
+      margin-bottom: 20px;
+    }
+    .auth-form label {
+      display: block;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .auth-form .btn-primary {
+      width: 100%;
+      height: 50px;
+      margin-top: 15px;
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .auth-message {
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      margin-bottom: 20px;
+      display: none;
+      line-height: 1.4;
+    }
+    .auth-message.error {
+      background: rgba(239, 71, 111, 0.15);
+      border: 1px solid rgba(239, 71, 111, 0.3);
+      color: #ef476f;
+      display: block;
+    }
+    .auth-message.success {
+      background: rgba(6, 214, 160, 0.15);
+      border: 1px solid rgba(6, 214, 160, 0.3);
+      color: #06d6a0;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Glowing background elements -->
+  <div class="mesh-gradient"></div>
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+
+  <div class="auth-container">
+    <div class="auth-card glass-panel">
+      <div class="card-glow"></div>
+      
+      <div class="auth-logo-area">
+        <div class="auth-logo-icon">
+          <i class="fa-solid fa-location-crosshairs"></i>
+        </div>
+        <h2>Maps<span>Miner</span></h2>
+        <p id="auth-subtitle">Acesse o seu Extrator de Leads Premium</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login">Entrar</button>
+        <button class="auth-tab" id="tab-register">Cadastrar</button>
+      </div>
+
+      <div id="auth-alert" class="auth-message"></div>
+
+      <form id="auth-form" class="auth-form">
+        <div class="input-group">
+          <label for="auth-email">E-mail Corporativo</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-envelope input-icon"></i>
+            <input type="email" id="auth-email" placeholder="nome@empresa.com" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="auth-password">Senha</label>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="auth-password" placeholder="Sua senha secreta" minlength="6" required>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-auth-submit" class="btn-primary">
+          <i class="fa-solid fa-right-to-bracket"></i> <span id="btn-text">Entrar no Painel</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Supabase CDN and Client Script -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    let supabaseClient;
+    let mode = 'login'; // 'login' or 'register'
+
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const authForm = document.getElementById('auth-form');
+    const authEmail = document.getElementById('auth-email');
+    const authPassword = document.getElementById('auth-password');
+    const authSubtitle = document.getElementById('auth-subtitle');
+    const btnText = document.getElementById('btn-text');
+    const btnIcon = document.querySelector('#btn-auth-submit i');
+    const authAlert = document.getElementById('auth-alert');
+
+    // Initialize Supabase Client
+    async function initSupabase() {
+      try {
+        const res = await fetch('/api/config');
+        if (!res.ok) throw new Error('Não foi possível obter chaves do Supabase.');
+        const config = await res.json();
+        
+        supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+        // Check if already logged in, redirect to index
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+          window.location.href = '/';
+        }
+      } catch (err) {
+        showAlert(err.message, 'error');
+      }
+    }
+
+    function showAlert(msg, type) {
+      authAlert.textContent = msg;
+      authAlert.className = `auth-message ${type}`;
+    }
+
+    function hideAlert() {
+      authAlert.style.display = 'none';
+      authAlert.className = 'auth-message';
+    }
+
+    // Toggle Modes
+    tabLogin.addEventListener('click', () => {
+      if (mode === 'login') return;
+      mode = 'login';
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      authSubtitle.textContent = 'Acesse o seu Extrator de Leads Premium';
+      btnText.textContent = 'Entrar no Painel';
+      btnIcon.className = 'fa-solid fa-right-to-bracket';
+      hideAlert();
+    });
+
+    tabRegister.addEventListener('click', () => {
+      if (mode === 'register') return;
+      mode = 'register';
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+      authSubtitle.textContent = 'Crie sua conta e ganhe 50 créditos grátis!';
+      btnText.textContent = 'Criar Conta Grátis';
+      btnIcon.className = 'fa-solid fa-user-plus';
+      hideAlert();
+    });
+
+    // Form Submit
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert();
+      
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+
+      if (!supabaseClient) {
+        showAlert('Erro: Supabase não inicializado. Verifique a configuração da VPS.', 'error');
+        return;
+      }
+
+      const btnSubmit = document.getElementById('btn-auth-submit');
+      btnSubmit.disabled = true;
+      btnText.textContent = mode === 'login' ? 'Autenticando...' : 'Criando Conta...';
+
+      try {
+        if (mode === 'login') {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          
+          showAlert('Login efetuado com sucesso! Redirecionando...', 'success');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1200);
+        } else {
+          const { data, error } = await supabaseClient.auth.signUp({ email, password });
+          if (error) throw error;
+
+          if (data?.user?.identities?.length === 0) {
+            // User already exists
+            throw new Error('Este endereço de e-mail já está cadastrado.');
+          }
+
+          showAlert('Cadastro realizado com sucesso! Sua conta foi ativada com 50 créditos grátis. Entrando...', 'success');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        }
+      } catch (err) {
+        showAlert(err.message || 'Erro inesperado durante a autenticação.', 'error');
+        btnSubmit.disabled = false;
+        btnText.textContent = mode === 'login' ? 'Entrar no Painel' : 'Criar Conta Grátis';
+      }
+    });
+
+    // Run Initial Setup
+    initSupabase();
+  </script>
+</body>
+</html>

@@ -41,6 +41,21 @@
         <span class="pulse-dot"></span>
         <span class="status-text">Pronto para minerar</span>
       </div>
+      <!-- User Profile Header -->
+      <div class="user-profile-header" id="user-profile-header" style="display: none;">
+        <div class="user-profile-info">
+          <i class="fa-solid fa-circle-user user-avatar-icon"></i>
+          <div class="user-profile-details">
+            <span class="user-email" id="user-email">guga@example.com</span>
+            <span class="user-credits-badge">
+              <i class="fa-solid fa-coins"></i> <span id="user-credits">0</span> créditos • <span id="user-plan">free</span>
+            </span>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn-logout" title="Sair da Conta">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
     </header>
 
     <!-- Main Grid Dashboard -->
@@ -290,6 +305,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>

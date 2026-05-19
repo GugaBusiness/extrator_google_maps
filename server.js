@@ -219,15 +219,68 @@ app.delete('/api/history', (req, res) => {
   }
 });
 
-// Parallel Queue Test Endpoint (SaaS Queue Integration)
-app.post('/api/scrape-queue', async (req, res) => {
-  const { query, limit, userId, city } = req.body;
+// Public Configuration Endpoint (Supabase Credentials)
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY
+  });
+});
+
+// Auth Middleware: Secure API routes using Supabase JWT
+const authenticateUser = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token de autenticação ausente ou inválido.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const supabase = require('./supabaseClient');
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Sessão expirada ou inválida. Faça login novamente.' });
+    }
+
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Erro ao validar token de autenticação: ' + err.message });
+  }
+};
+
+// Get User Profile (Credits and Plan info)
+app.get('/api/profile', authenticateUser, async (req, res) => {
+  const supabase = require('./supabaseClient');
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('credits, plan')
+      .eq('id', req.user.id)
+      .single();
+
+    if (error || !profile) {
+      return res.status(404).json({ error: 'Perfil de usuário não encontrado.' });
+    }
+
+    res.json({
+      email: req.user.email,
+      credits: profile.credits,
+      plan: profile.plan
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Parallel Queue Endpoint (SaaS Queue Integration) - Secured
+app.post('/api/scrape-queue', authenticateUser, async (req, res) => {
+  const { query, limit, city } = req.body;
+  const userId = req.user.id; // Secure: taken from authenticated user token
 
   if (!query) {
     return res.status(400).json({ error: 'Parâmetro "query" é obrigatório.' });
-  }
-  if (!userId) {
-    return res.status(400).json({ error: 'ID do Usuário ("userId") é obrigatório para o SaaS.' });
   }
 
   const supabase = require('./supabaseClient');
@@ -278,7 +331,7 @@ app.post('/api/scrape-queue', async (req, res) => {
       searchId: search.id
     });
 
-    console.log(`[QUEUE] Busca enfileirada com sucesso. Job ID: ${job.id}, Search ID: ${search.id}`);
+    console.log(`[QUEUE] Busca enfileirada com sucesso para usuário ${userId}. Job ID: ${job.id}, Search ID: ${search.id}`);
     res.json({
       success: true,
       message: 'Tarefa de extração enfileirada com sucesso!',
@@ -292,21 +345,23 @@ app.post('/api/scrape-queue', async (req, res) => {
   }
 });
 
-// Get queue search status and leads in real-time
-app.get('/api/scrape-status/:searchId', async (req, res) => {
+// Get queue search status and leads in real-time - Secured
+app.get('/api/scrape-status/:searchId', authenticateUser, async (req, res) => {
   const { searchId } = req.params;
+  const userId = req.user.id;
   const supabase = require('./supabaseClient');
 
   try {
-    // 1. Obter status da busca
+    // 1. Obter status da busca garantindo que pertence ao usuário logado
     const { data: search, error: searchError } = await supabase
       .from('searches')
       .select('*')
       .eq('id', searchId)
+      .eq('user_id', userId)
       .single();
 
     if (searchError || !search) {
-      return res.status(404).json({ error: 'Busca não encontrada no banco.' });
+      return res.status(404).json({ error: 'Busca não encontrada ou acesso não autorizado.' });
     }
 
     // 2. Obter leads já extraídos e gravados na nuvem para esta busca
@@ -326,6 +381,114 @@ app.get('/api/scrape-status/:searchId', async (req, res) => {
       csvFilename: search.csv_filename,
       leads: leads || []
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get authenticated user search history - Secured
+app.get('/api/history', authenticateUser, async (req, res) => {
+  const supabase = require('./supabaseClient');
+  try {
+    const { data: searches, error } = await supabase
+      .from('searches')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Map searches to frontend history list item format
+    const history = (searches || []).map(search => ({
+      searchId: search.id,
+      leadsCount: search.limit_count, // Fallback to limit_count
+      title: search.query.split(' em ')[0] || search.query,
+      subtitle: search.city || 'Geral',
+      date: search.created_at,
+      status: search.status,
+      filename: search.json_filename || `leads_${search.id}.json`
+    }));
+
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Load history search with leads - Secured
+app.get('/api/history/load', authenticateUser, async (req, res) => {
+  const searchId = req.query.searchId || req.query.file?.replace('leads_', '')?.replace('.json', '');
+  if (!searchId) {
+    return res.status(400).json({ error: 'Parâmetro "searchId" ou "file" é obrigatório.' });
+  }
+
+  const supabase = require('./supabaseClient');
+  try {
+    // 1. Verificar propriedade da busca
+    const { data: search, error: searchError } = await supabase
+      .from('searches')
+      .select('*')
+      .eq('id', searchId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (searchError || !search) {
+      return res.status(404).json({ error: 'Busca não encontrada ou acesso não autorizado.' });
+    }
+
+    // 2. Buscar leads da nuvem
+    const { data: leads, error: leadsError } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('search_id', searchId)
+      .order('created_at', { ascending: true });
+
+    if (leadsError) {
+      return res.status(500).json({ error: leadsError.message });
+    }
+
+    res.json({
+      leads: leads || [],
+      jsonFilename: search.json_filename || `leads_${search.id}.json`,
+      csvFilename: search.csv_filename || `leads_${search.id}.csv`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete history search - Secured
+app.delete('/api/history', authenticateUser, async (req, res) => {
+  const searchId = req.query.searchId || req.query.file?.replace('leads_', '')?.replace('.json', '');
+  if (!searchId) {
+    return res.status(400).json({ error: 'Parâmetro "searchId" ou "file" é obrigatório.' });
+  }
+
+  const supabase = require('./supabaseClient');
+  try {
+    // 1. Verificar propriedade e deletar da nuvem (on delete cascade cuidará dos leads e histórico)
+    const { data, error } = await supabase
+      .from('searches')
+      .delete()
+      .eq('id', searchId)
+      .eq('user_id', req.user.id)
+      .select();
+
+    if (error || !data || data.length === 0) {
+      return res.status(404).json({ error: 'Nenhuma busca encontrada para exclusão ou acesso não autorizado.' });
+    }
+
+    // 2. Se houver arquivos locais deletados pelo scraper, limpá-los da VPS
+    const safeFilename = `leads_${searchId}`;
+    const jsonPath = path.join(DATA_DIR, safeFilename + '.json');
+    const csvPath = path.join(DATA_DIR, safeFilename + '.csv');
+
+    if (fs.existsSync(jsonPath)) fs.unlinkSync(jsonPath);
+    if (fs.existsSync(csvPath)) fs.unlinkSync(csvPath);
+
+    res.json({ success: true, message: 'Histórico excluído com sucesso.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

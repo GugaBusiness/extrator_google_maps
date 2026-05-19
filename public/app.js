@@ -34,12 +34,87 @@ document.addEventListener('DOMContentLoaded', () => {
   const tableFilter = document.getElementById('table-filter');
   const leadsTableBody = document.getElementById('leads-table-body');
 
+  // DOM Elements - User Profile Header
+  const userProfileHeader = document.getElementById('user-profile-header');
+  const userEmailSpan = document.getElementById('user-email');
+  const userCreditsSpan = document.getElementById('user-credits');
+  const userPlanSpan = document.getElementById('user-plan');
+  const btnLogout = document.getElementById('btn-logout');
+
   // Application State
+  let supabaseClient = null;
+  let userSession = null;
   let eventSource = null;
   let allLeads = [];
   let scrapeActive = false;
   let activeJsonFilename = '';
   let activeCsvFilename = '';
+
+  // Initialize Supabase Auth and session checking
+  async function initAuth() {
+    try {
+      const res = await fetch('/api/config');
+      if (!res.ok) throw new Error('Não foi possível obter chaves do Supabase.');
+      const config = await res.json();
+      
+      supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+      // Check current session
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      userSession = session;
+
+      // Listen for auth state changes (e.g. sign out)
+      supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          window.location.href = '/login.html';
+        }
+      });
+
+      // Load Profile & History
+      await loadUserProfile();
+      loadSearchHistory();
+    } catch (err) {
+      console.error('Erro de autenticação:', err);
+      addLog('Falha ao conectar ao serviço de autenticação do Supabase.', 'error');
+    }
+  }
+
+  // Fetch real-time user profile (credits & plan)
+  async function loadUserProfile() {
+    if (!userSession) return;
+    try {
+      const res = await fetch('/api/profile', {
+        headers: { 'Authorization': `Bearer ${userSession.access_token}` }
+      });
+      if (!res.ok) throw new Error('Falha ao obter perfil.');
+      const profile = await res.json();
+
+      userEmailSpan.textContent = profile.email;
+      userCreditsSpan.textContent = profile.credits;
+      userPlanSpan.textContent = profile.plan;
+      userProfileHeader.style.display = 'flex';
+    } catch (err) {
+      console.error('Erro ao carregar perfil:', err);
+    }
+  }
+
+  // Logout Trigger
+  if (btnLogout) {
+    btnLogout.addEventListener('click', async () => {
+      if (confirm('Deseja realmente sair da sua conta?')) {
+        if (supabaseClient) {
+          await supabaseClient.auth.signOut();
+        } else {
+          window.location.href = '/login.html';
+        }
+      }
+    });
+  }
 
   // Add line to terminal console
   function addLog(message, type = 'normal') {
@@ -393,7 +468,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load Search History from server
   function loadSearchHistory() {
-    fetch('/api/history')
+    if (!userSession) return;
+    fetch('/api/history', {
+      headers: { 'Authorization': `Bearer ${userSession.access_token}` }
+    })
       .then(res => res.json())
       .then(history => {
         const historyList = document.getElementById('history-list');
@@ -427,14 +505,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="history-item-actions">
               <span class="history-item-date">${formattedDate}</span>
-              <button class="delete-history-btn" title="Excluir busca" data-file="${item.filename}">
+              <button class="delete-history-btn" title="Excluir busca" data-id="${item.searchId}">
                 <i class="fa-solid fa-trash-can"></i>
               </button>
             </div>
           `;
           
           div.addEventListener('click', () => {
-            loadHistoricalSearch(item.filename);
+            loadHistoricalSearch(item.searchId);
           });
 
           const deleteBtn = div.querySelector('.delete-history-btn');
@@ -442,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteBtn.addEventListener('click', (e) => {
               e.stopPropagation(); // Avoid loading the clicked history card
               if (confirm(`Deseja realmente excluir permanentemente a busca "${item.title}"?`)) {
-                deleteHistoryItem(item.filename);
+                deleteHistoryItem(item.searchId);
               }
             });
           }
@@ -454,9 +532,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Delete search history item from server and reset UI if active
-  function deleteHistoryItem(filename) {
-    fetch(`/api/history?file=${filename}`, {
-      method: 'DELETE'
+  function deleteHistoryItem(searchId) {
+    if (!userSession) return;
+    fetch(`/api/history?searchId=${searchId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${userSession.access_token}` }
     })
       .then(res => res.json())
       .then(data => {
@@ -464,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
           addLog('Busca histórica excluída com sucesso.', 'success');
           
           // Clear active display if it corresponds to the deleted history
-          if (activeJsonFilename === filename) {
+          if (activeJsonFilename.includes(searchId)) {
             allLeads = [];
             activeJsonFilename = '';
             activeCsvFilename = '';
@@ -485,8 +565,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Load selected search history details into dashboard
-  function loadHistoricalSearch(filename) {
-    addLog(`Carregando busca histórica: ${filename}...`, 'system');
+  function loadHistoricalSearch(searchId) {
+    addLog(`Carregando busca histórica: ${searchId}...`, 'system');
     
     // Reset filters
     activeFilterChip = 'all';
@@ -497,7 +577,10 @@ document.addEventListener('DOMContentLoaded', () => {
     tableSort.value = 'none';
     tableFilter.value = '';
     
-    fetch(`/api/history/load?file=${filename}`)
+    if (!userSession) return;
+    fetch(`/api/history/load?searchId=${searchId}`, {
+      headers: { 'Authorization': `Bearer ${userSession.access_token}` }
+    })
       .then(res => res.json())
       .then(data => {
         allLeads = data.leads;
@@ -521,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(err => {
         console.error('Erro ao carregar histórico:', err);
-        addLog(`Erro ao carregar histórico do arquivo.`, 'error');
+        addLog(`Erro ao carregar histórico do banco de dados.`, 'error');
       });
   }
 
@@ -636,18 +719,17 @@ document.addEventListener('DOMContentLoaded', () => {
     addLog('Enviando busca para a fila de processamento assíncrona na VPS...', 'system');
     progressStatusText.textContent = 'Enfileirando tarefa...';
 
-    // Para o teste integrado do SaaS, usaremos o ID padrão do perfil de teste
-    const userId = "82282c35-622f-4272-a446-1ca88b8ce98f";
+    if (!userSession) return;
 
     fetch('/api/scrape-queue', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${userSession.access_token}`
       },
       body: JSON.stringify({
         query: query,
         limit: limit,
-        userId: userId,
         city: city
       })
     })
@@ -670,7 +752,9 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        fetch(`/api/scrape-status/${searchId}`)
+        fetch(`/api/scrape-status/${searchId}`, {
+          headers: { 'Authorization': `Bearer ${userSession.access_token}` }
+        })
         .then(res => res.json())
         .then(statusData => {
           const leads = statusData.leads || [];
@@ -713,6 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tableFilter.disabled = false;
             tableSort.disabled = false;
             loadSearchHistory();
+            loadUserProfile(); // Visual refresh of credits!
             
             // Limpeza de estado e reativação dos campos
             scrapeActive = false;
@@ -729,6 +814,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             systemStatus.className = 'status-badge';
             systemStatusText.textContent = 'Erro na extração';
+            loadUserProfile(); // Visual refresh of credits even if failed!
             
             scrapeActive = false;
             btnStart.disabled = false;
@@ -789,6 +875,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Call on initial startup to populate history sidebar immediately
-  loadSearchHistory();
+  // Trigger Supabase Auth flow on load
+  initAuth();
 });
