@@ -21,6 +21,23 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR);
 }
 
+// Helper to structurally detect if a Brazilian phone number is a mobile line (highly likely to have WhatsApp active)
+function checkWhatsAppStructurally(phone) {
+  if (!phone) return false;
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  if (cleanPhone.length === 11) {
+    return cleanPhone[2] === '9';
+  }
+  if (cleanPhone.length === 13) {
+    return cleanPhone[4] === '9';
+  }
+  if (cleanPhone.length === 9) {
+    return cleanPhone[0] === '9';
+  }
+  return false;
+}
+
 // B2B Enrichment Helper: Scrapes website for emails and social media links
 async function enrichLeadWebsite(url) {
   if (!url || typeof url !== 'string' || !url.startsWith('http')) {
@@ -504,6 +521,8 @@ async function runScrape({ query, limit = 10, headless = true, userId = null, se
             b2bData = await enrichLeadWebsite(website);
           }
 
+          const hasWhatsapp = checkWhatsAppStructurally(phone);
+
           const lead = {
             name,
             category,
@@ -519,7 +538,8 @@ async function runScrape({ query, limit = 10, headless = true, userId = null, se
             reviewsCount: ratingData.reviewsCount,
             lat,
             lng,
-            url: pageUrl
+            url: pageUrl,
+            has_whatsapp: hasWhatsapp
           };
 
           leads.push(lead);
@@ -549,7 +569,8 @@ async function runScrape({ query, limit = 10, headless = true, userId = null, se
                   reviews_count: lead.reviewsCount ? parseInt(lead.reviewsCount) : 0,
                   lat: lead.lat ? parseFloat(lead.lat) : null,
                   lng: lead.lng ? parseFloat(lead.lng) : null,
-                  url: lead.url
+                  url: lead.url,
+                  has_whatsapp: lead.has_whatsapp
                 });
 
               if (dbError) {

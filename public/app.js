@@ -385,7 +385,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (activeFilterChip === 'has-site') {
       filtered = filtered.filter(l => l.website);
     } else if (activeFilterChip === 'has-phone') {
-      filtered = filtered.filter(l => l.phone);
+      filtered = filtered.filter(l => {
+        if (l.has_whatsapp !== undefined && l.has_whatsapp !== null) {
+          return l.has_whatsapp === true || l.has_whatsapp === 'true';
+        }
+        if (l.hasWhatsapp !== undefined && l.hasWhatsapp !== null) {
+          return l.hasWhatsapp === true || l.hasWhatsapp === 'true';
+        }
+        // Fallback para buscas antigas do historico: valida estruturalmente
+        if (!l.phone) return false;
+        const clean = l.phone.replace(/\D/g, '');
+        return clean.length === 11 ? clean[2] === '9' : (clean.length === 13 ? clean[4] === '9' : (clean.length === 9 ? clean[0] === '9' : false));
+      });
     } else if (activeFilterChip === 'has-email') {
       filtered = filtered.filter(l => l.email);
     }
