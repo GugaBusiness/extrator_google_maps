@@ -292,6 +292,45 @@ app.post('/api/scrape-queue', async (req, res) => {
   }
 });
 
+// Get queue search status and leads in real-time
+app.get('/api/scrape-status/:searchId', async (req, res) => {
+  const { searchId } = req.params;
+  const supabase = require('./supabaseClient');
+
+  try {
+    // 1. Obter status da busca
+    const { data: search, error: searchError } = await supabase
+      .from('searches')
+      .select('*')
+      .eq('id', searchId)
+      .single();
+
+    if (searchError || !search) {
+      return res.status(404).json({ error: 'Busca não encontrada no banco.' });
+    }
+
+    // 2. Obter leads já extraídos e gravados na nuvem para esta busca
+    const { data: leads, error: leadsError } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('search_id', searchId)
+      .order('created_at', { ascending: true });
+
+    if (leadsError) {
+      return res.status(500).json({ error: 'Erro ao obter leads: ' + leadsError.message });
+    }
+
+    res.json({
+      status: search.status,
+      jsonFilename: search.json_filename,
+      csvFilename: search.csv_filename,
+      leads: leads || []
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Serve frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

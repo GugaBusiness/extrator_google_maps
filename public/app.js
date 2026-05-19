@@ -630,95 +630,138 @@ document.addEventListener('DOMContentLoaded', () => {
     systemStatusText.textContent = 'Extraindo...';
     progressStatusText.textContent = 'Iniciando navegador...';
     
-    addLog(`Iniciando extração para: "${query}" (Limite: ${limit})`, 'system');
+    addLog(`Iniciando extração para: "${    // Connect to SaaS Queue API instead of direct síncrono SSE
+    addLog('Enviando busca para a fila de processamento assíncrona na VPS...', 'system');
+    progressStatusText.textContent = 'Enfileirando tarefa...';
 
-    // Connect to Server-Sent Events Endpoint
-    const url = `/api/scrape?query=${encodeURIComponent(query)}&limit=${limit}&headless=${headless}`;
-    eventSource = new EventSource(url);
+    // Para o teste integrado do SaaS, usaremos o ID padrão do perfil de teste
+    const userId = "82282c35-622f-4272-a446-1ca88b8ce98f";
 
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      switch (data.type) {
-        case 'status':
-          addLog(data.message, 'normal');
-          progressStatusText.textContent = data.message;
-          break;
-          
-        case 'lead':
-          const lead = data.lead;
-          allLeads.push(lead);
-          
-          // Capture active filenames
-          if (data.jsonFilename) activeJsonFilename = data.jsonFilename;
-          if (data.csvFilename) activeCsvFilename = data.csvFilename;
-          
-          // Append and update stats
-          appendLeadToTable(lead, allLeads.length);
-          updateStats();
-          
-          // Progress bar calc
-          const currentProgressPercent = Math.min(100, Math.round((allLeads.length / limit) * 100));
-          progressBarFill.style.width = `${currentProgressPercent}%`;
-          progressPercentVal.textContent = `${currentProgressPercent}%`;
-          
-          addLog(`Lead minerado: [${allLeads.length}/${limit}] ${lead.name}`, 'success');
-          break;
-          
-        case 'complete':
-          addLog(`Extração concluída com sucesso! Total: ${data.total} leads.`, 'success');
-          progressStatusText.textContent = 'Extração finalizada.';
-          progressBarFill.style.width = '100%';
-          progressPercentVal.textContent = '100%';
-          
-          systemStatus.className = 'status-badge done';
-          systemStatusText.textContent = 'Concluído';
-          
-          // Setup download links
-          const finalJson = data.jsonFilename || activeJsonFilename;
-          const finalCsv = data.csvFilename || activeCsvFilename;
-          downloadCsv.href = `/api/download/csv?file=${finalCsv}`;
-          downloadJson.href = `/api/download/json?file=${finalJson}`;
-          exportCard.classList.add('visible');
-          tableFilter.disabled = false;
-          tableSort.disabled = false;
-          loadSearchHistory();
-          
-          // Cleanup
-          eventSource.close();
-          scrapeActive = false;
-          btnStart.disabled = false;
-          btnStop.disabled = true;
-          queryInput.disabled = false;
-          cityInput.disabled = false;
-          limitInput.disabled = false;
-          headlessMode.disabled = false;
-          break;
-          
-        case 'error':
-          addLog(`Erro de raspagem: ${data.message}`, 'error');
-          progressStatusText.textContent = 'Erro durante a busca.';
-          
-          systemStatus.className = 'status-badge';
-          systemStatusText.textContent = 'Erro na extração';
-          
-          eventSource.close();
-          scrapeActive = false;
-          btnStart.disabled = false;
-          btnStop.disabled = true;
-          queryInput.disabled = false;
-          cityInput.disabled = false;
-          limitInput.disabled = false;
-          headlessMode.disabled = false;
-          break;
+    fetch('/api/scrape-queue', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: query,
+        limit: limit,
+        userId: userId,
+        city: city
+      })
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(err => { throw new Error(err.error || 'Erro na requisição'); });
       }
-    };
+      return res.json();
+    })
+    .then(data => {
+      const searchId = data.searchId;
+      addLog(`Busca enfileirada no Redis com sucesso! ID da Busca: ${searchId}`, 'success');
+      addLog('O Worker na VPS iniciou o processamento do Google Maps. Acompanhando progresso...', 'system');
+      progressStatusText.textContent = 'Worker extraindo...';
 
-    eventSource.onerror = (err) => {
-      console.error('SSE Error:', err);
-      addLog('A conexão com o servidor foi perdida ou interrompida.', 'error');
-      stopScrape();
-    };
+      let lastLeadsLength = 0;
+      let pollingInterval = setInterval(() => {
+        if (!scrapeActive) {
+          clearInterval(pollingInterval);
+          return;
+        }
+
+        fetch(`/api/scrape-status/${searchId}`)
+        .then(res => res.json())
+        .then(statusData => {
+          const leads = statusData.leads || [];
+          
+          // Adiciona logs e preenche a tabela conforme os leads chegam na nuvem
+          if (leads.length > lastLeadsLength) {
+            for (let i = lastLeadsLength; i < leads.length; i++) {
+              const lead = leads[i];
+              allLeads.push(lead);
+              appendLeadToTable(lead, allLeads.length);
+              updateStats();
+              
+              // Cálculo da barra de progresso
+              const currentProgressPercent = Math.min(100, Math.round((allLeads.length / limit) * 100));
+              progressBarFill.style.width = `${currentProgressPercent}%`;
+              progressPercentVal.textContent = `${currentProgressPercent}%`;
+              
+              addLog(`Lead minerado pelo Worker: [${allLeads.length}/${limit}] ${lead.name}`, 'success');
+            }
+            lastLeadsLength = leads.length;
+          }
+
+          // Verifica o status global da busca
+          if (statusData.status === 'completed') {
+            clearInterval(pollingInterval);
+            addLog(`Extração concluída com sucesso pelo Worker! Total: ${leads.length} leads.`, 'success');
+            progressStatusText.textContent = 'Extração finalizada.';
+            progressBarFill.style.width = '100%';
+            progressPercentVal.textContent = '100%';
+            
+            systemStatus.className = 'status-badge done';
+            systemStatusText.textContent = 'Concluído';
+            
+            // Configurar links de download para o CSV e JSON criados pela busca na nuvem
+            const finalJson = statusData.jsonFilename || `leads_${Date.now()}.json`;
+            const finalCsv = statusData.csvFilename || `leads_${Date.now()}.csv`;
+            downloadCsv.href = `/api/download/csv?file=${finalCsv}`;
+            downloadJson.href = `/api/download/json?file=${finalJson}`;
+            exportCard.classList.add('visible');
+            tableFilter.disabled = false;
+            tableSort.disabled = false;
+            loadSearchHistory();
+            
+            // Limpeza de estado e reativação dos campos
+            scrapeActive = false;
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+            queryInput.disabled = false;
+            cityInput.disabled = false;
+            limitInput.disabled = false;
+            headlessMode.disabled = false;
+          } else if (statusData.status === 'failed') {
+            clearInterval(pollingInterval);
+            addLog(`Erro de raspagem: Ocorreu uma falha no processador de fila na VPS.`, 'error');
+            progressStatusText.textContent = 'Erro durante a busca.';
+            
+            systemStatus.className = 'status-badge';
+            systemStatusText.textContent = 'Erro na extração';
+            
+            scrapeActive = false;
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+            queryInput.disabled = false;
+            cityInput.disabled = false;
+            limitInput.disabled = false;
+            headlessMode.disabled = false;
+          }
+        })
+        .catch(err => {
+          console.error('Erro de polling:', err);
+        });
+      }, 2000);
+
+      // Salva referência do intervalo para o botão Stop poder cancelar
+      eventSource = {
+        close: () => {
+          clearInterval(pollingInterval);
+        }
+      };
+    })
+    .catch(err => {
+      addLog(`Erro ao enfileirar busca: ${err.message}`, 'error');
+      progressStatusText.textContent = 'Erro ao enfileirar.';
+      systemStatus.className = 'status-badge';
+      systemStatusText.textContent = 'Erro na extração';
+      
+      scrapeActive = false;
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+      queryInput.disabled = false;
+      cityInput.disabled = false;
+      limitInput.disabled = false;
+      headlessMode.disabled = false;
     loadSearchHistory();
   });
 
